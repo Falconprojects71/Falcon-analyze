@@ -1,0 +1,6 @@
+{
+  "name": "AI Chart Analyzer",
+  "description": "Professional trading terminal AI for analyzing candlestick charts, detecting support/resistance, market structure, entry zones, and trade setups with Gemini vision.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
