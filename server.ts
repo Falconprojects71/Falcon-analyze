@@ -1661,6 +1661,49 @@ app.get(
 // ============================================================
 
 app.post(
+  '/api/safepay/webhook',
+  async (req: Request, res: Response) => {
+    try {
+      const payload = JSON.stringify(req.body);
+      const signature = req.headers['x-sfpy-signature'] as string;
+      const webhookSecret = env('SAFEPAY_WEBHOOK_SECRET');
+
+      if (!signature || !webhookSecret) {
+        return res.status(400).json({
+          success: false,
+          error: 'Webhook verification data missing.',
+        });
+      }
+
+      const expectedSignature = crypto
+        .createHmac('sha256', webhookSecret)
+        .update(payload)
+        .digest('hex');
+
+      if (!safeEqual(signature, expectedSignature)) {
+        return res.status(401).json({
+          success: false,
+          error: 'Invalid webhook signature.',
+        });
+      }
+
+      const event = req.body;
+
+      if (event?.type === 'payment.succeeded') {
+        console.log('Safepay payment succeeded:', event.data);
+      }
+
+      return res.json({ received: true });
+    } catch (error) {
+      console.error('Safepay webhook error:', error);
+      return res.status(400).json({
+        success: false,
+        error: 'Webhook processing failed.',
+      });
+    }
+  }
+);
+app.post(
   '/api/verify-license',
   (req: Request, res: Response) => {
     const { licenseKey } =
