@@ -2905,10 +2905,10 @@ async function startServer() {
       )
     );
 
-    app.get(
-     '/*splat'
-      (
-        _req: Request,
+   app.get(
+  '*',
+  (
+    _req: Request,
         res: Response
       ) => {
         res.sendFile(
