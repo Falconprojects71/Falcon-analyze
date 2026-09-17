@@ -5,6 +5,7 @@ import fs from 'fs';
 import crypto from 'crypto';
 import { createServer as createViteServer } from 'vite';
 import { GoogleGenAI } from '@google/genai';
+import { Safepay } from '@sfpy/node-sdk';
 
 // ============================================================
 // FALCON ANALYZE - PRODUCTION SERVER
@@ -1459,6 +1460,11 @@ The analysis must be based on the uploaded chart image(s), not on assumptions.
 // ============================================================
 
 const app = express();
+const safepay = new Safepay({
+  environment: 'sandbox',
+  apiKey: env('SAFEPAY_SECRET_KEY'),
+  webhookSecret: env('SAFEPAY_WEBHOOK_SECRET'),
+});
 
 app.disable('x-powered-by');
 
@@ -1543,6 +1549,61 @@ app.get(
   }
 );
 
+// ============================================================
+// SAFEPAY SUBSCRIPTION CHECKOUT
+// ============================================================
+
+app.post(
+  '/api/safepay/create-subscription',
+  async (req: Request, res: Response) => {
+    try {
+      const { plan } = req.body;
+
+      const planId =
+        plan === 'monthly'
+          ? env('SAFEPAY_MONTHLY_PLAN_ID')
+          : plan === 'yearly'
+            ? env('SAFEPAY_YEARLY_PLAN_ID')
+            : '';
+
+      if (!planId) {
+        return res.status(400).json({
+          success: false,
+          error: 'Invalid or missing plan.',
+        });
+      }
+
+      const reference = crypto.randomUUID();
+
+      const baseUrl =
+        ${req.protocol}://${req.get('host')};
+
+      const checkoutUrl =
+        await safepay.checkout.createSubscription({
+          planId,
+          reference,
+          cancelUrl: ${baseUrl}/?payment=cancel,
+          redirectUrl: ${baseUrl}/?payment=success,
+        });
+
+      return res.json({
+        success: true,
+        checkoutUrl,
+        reference,
+      });
+    } catch (error) {
+      console.error(
+        'Safepay subscription error:',
+        error
+      );
+
+      return res.status(500).json({
+        success: false,
+        error: 'Unable to create Safepay subscription.',
+      });
+    }
+  }
+);
 // ============================================================
 // USAGE STATUS
 // ============================================================
