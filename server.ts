@@ -1661,63 +1661,7 @@ app.get(
 // LICENSE VERIFICATION
 // ============================================================
 
-// SAFEPAY SUBSCRIPTION CHECKOUT
-app.get(
-  '/api/safepay/checkout',
-  async (req: Request, res: Response) => {
-    try {
-      const planType = String(req.query.plan || '').toLowerCase();
 
-      const planId =
-        planType === 'yearly'
-          ? env('SAFEPAY_YEARLY_PLAN_ID')
-          : planType === 'monthly'
-            ? env('SAFEPAY_MONTHLY_PLAN_ID')
-            : '';
-
-      if (!planId) {
-        return res.status(400).json({
-          success: false,
-          error: 'Invalid or missing plan.',
-        });
-      }
-
-      const { Safepay } = await import('@sfpy/node-sdk');
-
-      const safepay = new Safepay({
-        environment: 'sandbox',
-        apiKey: env('SAFEPAY_SECRET_KEY'),
-        webhookSecret: env('SAFEPAY_WEBHOOK_SECRET'),
-      });
-
-      const baseUrl = `${req.protocol}://${req.get('host')}`;
-
-      const reference = `FA-${Date.now()}-${Math.random()
-        .toString(36)
-        .slice(2, 8)}`;
-
-      const checkoutUrl = await safepay.checkout.createSubscription({
-        planId,
-        reference,
-        cancelUrl: `${baseUrl}/?payment=cancel`,
-        redirectUrl: `${baseUrl}/?payment=success`,
-      });
-
-      return res.json({
-        success: true,
-        checkoutUrl,
-        reference,
-      });
-    } catch (error) {
-      console.error('Safepay subscription error:', error);
-
-      return res.status(500).json({
-        success: false,
-        error: 'Unable to create Safepay checkout.',
-      });
-    }
-  }
-);
 app.post(
  '/api/safepay/webhook',
   async (req: Request, res: Response) => {
