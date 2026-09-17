@@ -2906,7 +2906,7 @@ async function startServer() {
     );
 
     app.get(
-      '*',
+     '/*splat'
       (
         _req: Request,
         res: Response
