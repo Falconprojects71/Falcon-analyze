@@ -2876,6 +2876,7 @@ app.post(
 // ============================================================
 
 async function startServer() {
+  console.log('[FALCON DEBUG] startServer reached');
   if (
     process.env.NODE_ENV !==
     'production'
