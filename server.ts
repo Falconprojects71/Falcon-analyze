@@ -5,7 +5,7 @@ import fs from 'fs';
 import crypto from 'crypto';
 import { createServer as createViteServer } from 'vite';
 import { GoogleGenAI } from '@google/genai';
-
+console.log('[FALCON DEBUG] server.ts loaded');
 // ============================================================
 // FALCON ANALYZE - PRODUCTION SERVER
 // ============================================================
