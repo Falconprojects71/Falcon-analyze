@@ -1459,12 +1459,6 @@ The analysis must be based on the uploaded chart image(s), not on assumptions.
 // MIDDLEWARE
 // ============================================================
 
-const app = express();
-const safepay = new Safepay({
-  environment: 'sandbox',
-  apiKey: env('SAFEPAY_SECRET_KEY'),
-  webhookSecret: env('SAFEPAY_WEBHOOK_SECRET'),
-});
 
 app.disable('x-powered-by');
 
