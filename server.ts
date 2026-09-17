@@ -2948,4 +2948,7 @@ async function startServer() {
   );
 }
 
-startServer();
+startServer().catch((error) => {
+  console.error('[FALCON STARTUP ERROR]', error);
+  process.exit(1);
+});
