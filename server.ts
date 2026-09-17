@@ -1582,8 +1582,8 @@ app.post(
         await safepay.checkout.createSubscription({
           planId,
           reference,
-          cancelUrl: ${baseUrl}/?payment=cancel,
-          redirectUrl: ${baseUrl}/?payment=success,
+          cancelUrl: `${baseUrl}/?payment=cancel`,
+          redirectUrl: `${baseUrl}/?payment=success`,
         });
 
       return res.json({
