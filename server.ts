@@ -5,7 +5,6 @@ import fs from 'fs';
 import crypto from 'crypto';
 import { createServer as createViteServer } from 'vite';
 import { GoogleGenAI } from '@google/genai';
-import { Safepay } from '@sfpy/node-sdk';
 
 // ============================================================
 // FALCON ANALYZE - PRODUCTION SERVER
