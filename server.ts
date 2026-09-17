@@ -1576,7 +1576,7 @@ app.post(
       const reference = crypto.randomUUID();
 
       const baseUrl =
-        ${req.protocol}://${req.get('host')};
+        `${req.protocol}://${req.get('host')}`;
 
       const checkoutUrl =
         await safepay.checkout.createSubscription({
