@@ -34,12 +34,7 @@ function env(name: string, fallback = ''): string {
   return (process.env[name] || fallback).trim();
 }
 
-const safepay = new Safepay({
-  environment: 'production',
-  apiKey: env('SAFEPAY_SECRET_KEY'),
-  webhookSecret: env('SAFEPAY_WEBHOOK_SECRET'),
-});
-
+const safepay = null;
 function getValidApiKey(): string {
   const key = env('GEMINI_API_KEY') || env('API_KEY') || env('GOOGLE_API_KEY');
 
