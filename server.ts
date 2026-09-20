@@ -5,7 +5,6 @@ import fs from 'fs';
 import crypto from 'crypto';
 import { createServer as createViteServer } from 'vite';
 import { GoogleGenAI } from '@google/genai';
-import { Safepay } from '@sfpy/node-sdk';
 
 // ============================================================
 // FALCON ANALYZE - PRODUCTION SERVER
@@ -34,7 +33,105 @@ function env(name: string, fallback = ''): string {
   return (process.env[name] || fallback).trim();
 }
 
-const safepay = null;
+// ============================================================
+// SAFEPAY SUBSCRIPTIONS
+// ============================================================
+
+const SAFEPAY_SECRET_KEY = env('SAFEPAY_SECRET_KEY');
+
+const SAFEPAY_HOST =
+  env('SAFEPAY_HOST') ||
+  'https://api.getsafepay.com';
+
+const SAFEPAY_CHECKOUT_HOST =
+  env('SAFEPAY_CHECKOUT_HOST') ||
+  'https://getsafepay.com';
+
+const SAFEPAY_MONTHLY_PLAN_ID =
+  env('SAFEPAY_MONTHLY_PLAN_ID');
+
+const SAFEPAY_YEARLY_PLAN_ID =
+  env('SAFEPAY_YEARLY_PLAN_ID');
+
+let safepayAuthTokenCache: {
+  token: string;
+  expiresAt: number;
+} = {
+  token: '',
+  expiresAt: 0,
+};
+
+async function getSafepayAuthToken(): Promise<string> {
+  const now = Date.now();
+
+  if (
+    safepayAuthTokenCache.token &&
+    now < safepayAuthTokenCache.expiresAt - 5 * 60 * 1000
+  ) {
+    return safepayAuthTokenCache.token;
+  }
+
+  if (!SAFEPAY_SECRET_KEY) {
+    throw new Error(
+      'SAFEPAY_SECRET_KEY is not configured.'
+    );
+  }
+
+  const response = await fetch(
+    ${SAFEPAY_HOST}/client/passport/v1/token,
+    {
+      method: 'POST',
+      headers: {
+        Authorization: Bearer ${SAFEPAY_SECRET_KEY},
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({}),
+    }
+  );
+
+  if (!response.ok) {
+    const errorText = await response.text();
+
+    throw new Error(
+      Safepay auth token failed: ${response.status} ${errorText}
+    );
+  }
+
+  const data = await response.json() as {
+    token?: string;
+  };
+
+  if (!data.token) {
+    throw new Error(
+      'Safepay auth token was not returned.'
+    );
+  }
+
+  safepayAuthTokenCache = {
+    token: data.token,
+    expiresAt: now + 60 * 60 * 1000,
+  };
+
+  return data.token;
+}
+
+function buildSafepayCheckoutUrl(params: {
+  planId: string;
+  reference: string;
+  redirectUrl: string;
+  cancelUrl: string;
+  authToken: string;
+}): string {
+  const query = new URLSearchParams({
+    plan_id: params.planId,
+    reference: params.reference,
+    redirect_url: params.redirectUrl,
+    cancel_url: params.cancelUrl,
+    auth_token: params.authToken,
+  });
+
+  return ${SAFEPAY_CHECKOUT_HOST}/checkout?${query.toString()};
+}
 function getValidApiKey(): string {
   const key = env('GEMINI_API_KEY') || env('API_KEY') || env('GOOGLE_API_KEY');
 
@@ -1464,6 +1561,17 @@ const app = express();
 
 app.disable('x-powered-by');
 
+// ============================================================
+// SAFEPAY WEBHOOK RAW BODY
+// ============================================================
+
+app.use(
+  '/api/safepay/webhook',
+  express.raw({
+    type: 'application/json',
+    limit: MAX_BODY_SIZE,
+  })
+);
 app.use(
   (req: Request, res: Response, next: NextFunction) => {
     res.header(
