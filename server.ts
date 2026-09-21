@@ -24,7 +24,10 @@ const MAX_BODY_SIZE = '50mb';
 const DATA_DIR = path.join(process.cwd(), 'data');
 const USAGE_FILE = path.join(DATA_DIR, 'usage.json');
 const TEST_PRO_FILE = path.join(DATA_DIR, 'test-pro.json');
-
+const PAID_SUBSCRIPTIONS_FILE = path.join(
+  DATA_DIR,
+  'paid-subscriptions.json'
+);
 // ============================================================
 // ENVIRONMENT / SECRETS
 // ============================================================
@@ -209,7 +212,23 @@ export interface TestProRecord {
   revokedAt?: string;
   notes?: string;
 }
-
+export interface PaidSubscriptionRecord {
+  reference: string;
+  userIdentifier: string;
+  planId: string;
+  planType: 'MONTHLY' | 'YEARLY';
+  status:
+    | 'PENDING'
+    | 'ACTIVE'
+    | 'CANCELED'
+    | 'ENDED'
+    | 'PAYMENT_FAILED';
+  subscriptionId?: string;
+  customerId?: string;
+  createdAt: string;
+  updatedAt: string;
+  expiresAt?: string;
+}
 interface UsageRecord {
   count: number;
   date: string;
@@ -398,7 +417,15 @@ const testProUsersList = new Map<string, TestProRecord>(
     readJsonFile<Record<string, TestProRecord>>(TEST_PRO_FILE, {})
   )
 );
-
+const paidSubscriptionsList =
+  new Map<string, PaidSubscriptionRecord>(
+    Object.entries(
+      readJsonFile<Record<string, PaidSubscriptionRecord>>(
+        PAID_SUBSCRIPTIONS_FILE,
+        {}
+      )
+    )
+  );
 function persistUsage() {
   const data: Record<string, UsageRecord> = {};
 
@@ -418,7 +445,18 @@ function persistTestProUsers() {
 
   writeJsonFile(TEST_PRO_FILE, data);
 }
+function persistPaidSubscriptions() {
+  const data: Record<string, PaidSubscriptionRecord> = {};
 
+  for (const [key, value] of paidSubscriptionsList.entries()) {
+    data[key] = value;
+  }
+
+  writeJsonFile(
+    PAID_SUBSCRIPTIONS_FILE,
+    data
+  );
+}
 // ============================================================
 // SECURITY HELPERS
 // ============================================================
