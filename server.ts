@@ -2035,7 +2035,7 @@ app.post(
       }
 
       console.log(
-        [SAFEPAY] Webhook received: ${eventType}
+        `[SAFEPAY] Webhook received: ${eventType}
       );
 
       // 3. Immediately acknowledge Safepay
