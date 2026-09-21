@@ -83,11 +83,11 @@ async function getSafepayAuthToken(): Promise<string> {
   }
 
   const response = await fetch(
-    ${SAFEPAY_HOST}/client/passport/v1/token,
+    `${SAFEPAY_HOST}/client/passport/v1/token`,
     {
       method: 'POST',
       headers: {
-        Authorization: Bearer ${SAFEPAY_SECRET_KEY},
+        Authorization: `Bearer ${SAFEPAY_SECRET_KEY}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({}),
