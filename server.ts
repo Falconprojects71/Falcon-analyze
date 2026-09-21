@@ -98,7 +98,7 @@ async function getSafepayAuthToken(): Promise<string> {
     const errorText = await response.text();
 
     throw new Error(
-      Safepay auth token failed: ${response.status} ${errorText}
+      `Safepay auth token failed: ${response.status} ${errorText}`
     );
   }
 
