@@ -1868,7 +1868,7 @@ app.post(
         `${baseUrl}/?safepay=success&reference=${encodeURIComponent(reference)}`;
 
       const cancelUrl =
-        ${baseUrl}/?safepay=cancelled&reference=${encodeURIComponent(reference)};
+        `${baseUrl}/?safepay=cancelled&reference=${encodeURIComponent(reference)}`;
 
       const now =
         new Date().toISOString();
