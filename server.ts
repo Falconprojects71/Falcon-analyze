@@ -1865,7 +1865,7 @@ app.post(
         `${req.protocol}://${req.get('host')}`;
 
       const redirectUrl =
-        ${baseUrl}/?safepay=success&reference=${encodeURIComponent(reference)};
+        `${baseUrl}/?safepay=success&reference=${encodeURIComponent(reference)}`;
 
       const cancelUrl =
         ${baseUrl}/?safepay=cancelled&reference=${encodeURIComponent(reference)};
