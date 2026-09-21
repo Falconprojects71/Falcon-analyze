@@ -49,6 +49,8 @@ const SAFEPAY_HOST =
 const SAFEPAY_CHECKOUT_HOST =
   env('SAFEPAY_CHECKOUT_HOST') ||
   'https://getsafepay.com';
+const SAFEPAY_WEBHOOK_SECRET =
+  env('SAFEPAY_WEBHOOK_SECRET');
 
 const SAFEPAY_MONTHLY_PLAN_ID =
   env('SAFEPAY_MONTHLY_PLAN_ID');
@@ -1920,7 +1922,336 @@ app.post(
     }
   }
 );
+// ============================================================
+// SAFEPAY WEBHOOK
+// ============================================================
 
+function verifySafepayWebhookSignature(
+  rawBody: Buffer,
+  receivedSignature: string
+): boolean {
+  if (
+    !SAFEPAY_WEBHOOK_SECRET ||
+    !receivedSignature
+  ) {
+    return false;
+  }
+
+  const computedSignature =
+    crypto
+      .createHmac(
+        'sha256',
+        SAFEPAY_WEBHOOK_SECRET
+      )
+      .update(rawBody)
+      .digest('hex');
+
+  const receivedBuffer =
+    Buffer.from(
+      receivedSignature,
+      'hex'
+    );
+
+  const computedBuffer =
+    Buffer.from(
+      computedSignature,
+      'hex'
+    );
+
+  if (
+    receivedBuffer.length !==
+    computedBuffer.length
+  ) {
+    return false;
+  }
+
+  return crypto.timingSafeEqual(
+    computedBuffer,
+    receivedBuffer
+  );
+}
+
+app.post(
+  '/api/safepay/webhook',
+  async (
+    req: Request,
+    res: Response
+  ) => {
+    try {
+      const signatureHeader =
+        req.headers[
+          'x-sfpy-signature'
+        ];
+
+      const signature =
+        typeof signatureHeader === 'string'
+          ? signatureHeader
+          : '';
+
+      const rawBody =
+        Buffer.isBuffer(req.body)
+          ? req.body
+          : Buffer.from('');
+
+      // 1. Verify signature
+      if (
+        !verifySafepayWebhookSignature(
+          rawBody,
+          signature
+        )
+      ) {
+        console.warn(
+          '[SAFEPAY] Invalid webhook signature.'
+        );
+
+        return res
+          .status(401)
+          .send('Invalid signature');
+      }
+
+      // 2. Parse event
+      const event =
+        JSON.parse(
+          rawBody.toString('utf8')
+        );
+
+      const eventType =
+        typeof event?.type === 'string'
+          ? event.type
+          : '';
+
+      const eventId =
+        typeof event?.id === 'string'
+          ? event.id
+          : '';
+
+      const eventData =
+        event?.data || {};
+
+      if (!eventType) {
+        return res
+          .status(400)
+          .send('Invalid event');
+      }
+
+      console.log(
+        [SAFEPAY] Webhook received: ${eventType}
+      );
+
+      // 3. Immediately acknowledge Safepay
+      res.status(200).send('OK');
+
+      // 4. Process subscription event
+      if (
+        eventType ===
+        'subscription.created'
+      ) {
+        const reference =
+          typeof eventData.reference ===
+          'string'
+            ? eventData.reference
+            : '';
+
+        const subscriptionId =
+          typeof eventData.subscription_id ===
+          'string'
+            ? eventData.subscription_id
+            : '';
+
+        if (!reference) {
+          console.warn(
+            '[SAFEPAY] subscription.created without reference.'
+          );
+          return;
+        }
+
+        const existing =
+          paidSubscriptionsList.get(
+            reference
+          );
+
+        if (existing) {
+          existing.status = 'PENDING';
+          existing.subscriptionId =
+            subscriptionId ||
+            existing.subscriptionId;
+          existing.updatedAt =
+            new Date().toISOString();
+
+          paidSubscriptionsList.set(
+            reference,
+            existing
+          );
+
+          persistPaidSubscriptions();
+        }
+
+        return;
+      }
+
+      if (
+        eventType ===
+        'subscription.payment.succeeded'
+      ) {
+        const reference =
+          typeof eventData.reference ===
+          'string'
+            ? eventData.reference
+            : '';
+
+        const subscriptionId =
+          typeof eventData.subscription_id ===
+          'string'
+            ? eventData.subscription_id
+            : '';
+
+        if (!reference) {
+          console.warn(
+            '[SAFEPAY] Successful subscription payment without reference.'
+          );
+          return;
+        }
+
+        const existing =
+          paidSubscriptionsList.get(
+            reference
+          );
+
+        if (!existing) {
+          console.warn(
+            [SAFEPAY] No pending subscription found for reference: ${reference}
+          );
+          return;
+        }
+
+        existing.status = 'ACTIVE';
+
+        if (subscriptionId) {
+          existing.subscriptionId =
+            subscriptionId;
+        }
+
+        existing.updatedAt =
+          new Date().toISOString();
+
+        paidSubscriptionsList.set(
+          reference,
+          existing
+        );
+
+        persistPaidSubscriptions();
+
+        console.log(
+          [SAFEPAY] Pro subscription activated: ${reference}
+        );
+
+        return;
+      }
+
+      if (
+        eventType ===
+        'subscription.payment.failed'
+      ) {
+        const reference =
+          typeof eventData.reference ===
+          'string'
+            ? eventData.reference
+            : '';
+
+        if (!reference) return;
+
+        const existing =
+          paidSubscriptionsList.get(
+            reference
+          );
+
+        if (!existing) return;
+
+        existing.status =
+          'PAYMENT_FAILED';
+
+        existing.updatedAt =
+          new Date().toISOString();
+
+        paidSubscriptionsList.set(
+          reference,
+          existing
+        );
+
+        persistPaidSubscriptions();
+
+        console.log(
+          [SAFEPAY] Subscription payment failed: ${reference}
+        );
+
+        return;
+      }
+
+      if (
+        eventType ===
+        'subscription.cancelled' ||
+        eventType ===
+        'subscription.canceled' ||
+        eventType ===
+        'subscription.ended'
+      ) {
+        const reference =
+          typeof eventData.reference ===
+          'string'
+            ? eventData.reference
+            : '';
+
+        if (!reference) return;
+
+        const existing =
+          paidSubscriptionsList.get(
+            reference
+          );
+
+        if (!existing) return;
+
+        existing.status =
+          eventType ===
+          'subscription.ended'
+            ? 'ENDED'
+            : 'CANCELED';
+
+        existing.updatedAt =
+          new Date().toISOString();
+
+        paidSubscriptionsList.set(
+          reference,
+          existing
+        );
+
+        persistPaidSubscriptions();
+
+        console.log(
+          [SAFEPAY] Subscription access ended: ${reference}
+        );
+
+        return;
+      }
+
+      console.log(
+        [SAFEPAY] Ignored event: ${eventType}
+      );
+    } catch (error) {
+      console.error(
+        '[SAFEPAY] Webhook processing error:',
+        error
+      );
+
+      // If response has not already been sent,
+      // return an error.
+      if (!res.headersSent) {
+        return res
+          .status(500)
+          .send('Webhook processing failed');
+      }
+    }
+  }
+);
 // ============================================================
 // LICENSE VERIFICATION
 // ============================================================
