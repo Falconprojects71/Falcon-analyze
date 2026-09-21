@@ -1803,6 +1803,123 @@ app.get(
     });
   }
 );
+// ============================================================
+// SAFEPAY CHECKOUT
+// ============================================================
+
+app.post(
+  '/api/safepay/checkout',
+  async (req: Request, res: Response) => {
+    try {
+      const {
+        plan,
+        userIdentifier,
+      } = req.body || {};
+
+      if (
+        plan !== 'monthly' &&
+        plan !== 'yearly'
+      ) {
+        return res.status(400).json({
+          success: false,
+          error: 'Invalid Safepay plan.',
+        });
+      }
+
+      const identifier =
+        typeof userIdentifier === 'string'
+          ? userIdentifier.trim()
+          : '';
+
+      if (!identifier) {
+        return res.status(400).json({
+          success: false,
+          error: 'User identifier is required.',
+        });
+      }
+
+      const planId =
+        plan === 'monthly'
+          ? SAFEPAY_MONTHLY_PLAN_ID
+          : SAFEPAY_YEARLY_PLAN_ID;
+
+      if (!planId) {
+        return res.status(500).json({
+          success: false,
+          error:
+            'Safepay plan ID is not configured.',
+        });
+      }
+
+      const authToken =
+        await getSafepayAuthToken();
+
+      const reference =
+        `falcon_${Date.now()}_${crypto
+          .randomBytes(6)
+          .toString('hex')}`;
+
+      const baseUrl =
+        ${req.protocol}://${req.get('host')};
+
+      const redirectUrl =
+        ${baseUrl}/?safepay=success&reference=${encodeURIComponent(reference)};
+
+      const cancelUrl =
+        ${baseUrl}/?safepay=cancelled&reference=${encodeURIComponent(reference)};
+
+      const now =
+        new Date().toISOString();
+
+      const record: PaidSubscriptionRecord = {
+        reference,
+        userIdentifier: identifier,
+        planId,
+        planType:
+          plan === 'monthly'
+            ? 'MONTHLY'
+            : 'YEARLY',
+        status: 'PENDING',
+        createdAt: now,
+        updatedAt: now,
+      };
+
+      paidSubscriptionsList.set(
+        reference,
+        record
+      );
+
+      persistPaidSubscriptions();
+
+      const checkoutUrl =
+        buildSafepayCheckoutUrl({
+          planId,
+          reference,
+          redirectUrl,
+          cancelUrl,
+          authToken,
+        });
+
+      return res.json({
+        success: true,
+        checkoutUrl,
+        reference,
+        plan,
+      });
+    } catch (error) {
+      console.error(
+        '[SAFEPAY] Checkout creation failed:',
+        error
+      );
+
+      return res.status(500).json({
+        success: false,
+        error:
+          'Unable to create Safepay checkout.',
+      });
+    }
+  }
+);
 
 // ============================================================
 // LICENSE VERIFICATION
