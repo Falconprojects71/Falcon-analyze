@@ -1862,7 +1862,7 @@ app.post(
           .toString('hex')}`;
 
       const baseUrl =
-        ${req.protocol}://${req.get('host')};
+        `${req.protocol}://${req.get('host')}`;
 
       const redirectUrl =
         ${baseUrl}/?safepay=success&reference=${encodeURIComponent(reference)};
