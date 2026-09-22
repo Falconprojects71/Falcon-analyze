@@ -2142,7 +2142,7 @@ app.post(
         persistPaidSubscriptions();
 
         console.log(
-          [SAFEPAY] Pro subscription activated: ${reference}
+          `[SAFEPAY] Pro subscription activated: ${reference}`
         );
 
         return;
@@ -2181,7 +2181,7 @@ app.post(
         persistPaidSubscriptions();
 
         console.log(
-          [SAFEPAY] Subscription payment failed: ${reference}
+          `[SAFEPAY] Subscription payment failed: ${reference}`
         );
 
         return;
@@ -2227,14 +2227,14 @@ app.post(
         persistPaidSubscriptions();
 
         console.log(
-          [SAFEPAY] Subscription access ended: ${reference}
+          `[SAFEPAY] Subscription access ended: ${reference}`
         );
 
         return;
       }
 
       console.log(
-        [SAFEPAY] Ignored event: ${eventType}
+        `[SAFEPAY] Ignored event: ${eventType}`
       );
     } catch (error) {
       console.error(
