@@ -1846,11 +1846,23 @@ app.post(
         });
       }
 
-      const planId =
+    const selectedCurrency =
+  currency === 'USD'
+    ? 'USD'
+    : 'PKR';
+
+const planId =
+  selectedCurrency === 'USD'
+    ? (
+        plan === 'monthly'
+          ? SAFEPAY_USD_MONTHLY_PLAN_ID
+          : SAFEPAY_USD_YEARLY_PLAN_ID
+      )
+    : (
         plan === 'monthly'
           ? SAFEPAY_MONTHLY_PLAN_ID
-          : SAFEPAY_YEARLY_PLAN_ID;
-
+          : SAFEPAY_YEARLY_PLAN_ID
+      );
       if (!planId) {
         return res.status(500).json({
           success: false,
