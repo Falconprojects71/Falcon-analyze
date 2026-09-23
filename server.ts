@@ -1821,6 +1821,7 @@ app.post(
       const {
         plan,
         userIdentifier,
+        currency,
       } = req.body || {};
 
       if (
