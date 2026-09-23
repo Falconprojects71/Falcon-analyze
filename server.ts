@@ -57,6 +57,11 @@ const SAFEPAY_MONTHLY_PLAN_ID =
 
 const SAFEPAY_YEARLY_PLAN_ID =
   env('SAFEPAY_YEARLY_PLAN_ID');
+const SAFEPAY_USD_MONTHLY_PLAN_ID =
+  env('SAFEPAY_USD_MONTHLY_PLAN_ID');
+
+const SAFEPAY_USD_YEARLY_PLAN_ID =
+  env('SAFEPAY_USD_YEARLY_PLAN_ID');
 
 let safepayAuthTokenCache: {
   token: string;
