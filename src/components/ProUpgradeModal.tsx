@@ -64,12 +64,37 @@ export const ProUpgradeModal: React.FC<ProUpgradeModalProps> = ({
 
   if (!isOpen) return null;
 
-  const handleCheckoutClick = () => {
-    // Honest status: no faked payment, notify user that live card gateway requires app owner config
+ const handleCheckoutClick = async () => {
+  setCheckoutNotice('Opening Safepay checkout...');
+
+  try {
+    const response = await fetch('/api/safepay/checkout', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        plan: activeTier === 'monthly' ? 'monthly' : 'yearly',
+        userIdentifier: 'falcon-user',
+        currency: 'PKR',
+      }),
+    });
+
+    const data = await response.json();
+
+    if (!response.ok || !data.success || !data.checkoutUrl) {
+      throw new Error(
+        data.error || 'Unable to create Safepay checkout.'
+      );
+    }
+
+    window.location.href = data.checkoutUrl;
+  } catch (error: any) {
     setCheckoutNotice(
-      'Payment Gateway Integration Notice: Direct credit card / Stripe checkout is currently pending configuration by the application owner. If you already have a Pro License Key, enter it below to activate instant Pro access.'
+      error.message || 'Unable to open Safepay checkout.'
     );
-  };
+  }
+};
 
   const handleVerifyLicense = async (e: React.FormEvent) => {
     e.preventDefault();
