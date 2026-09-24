@@ -285,11 +285,34 @@ export const ProUpgradeModal: React.FC<ProUpgradeModalProps> = ({
                     <span className="w-2 h-2 rounded-full bg-amber-400 shadow-[0_0_8px_rgba(245,158,11,0.8)]" />
                   )}
                 </div>
-                <div className="mt-2 flex items-baseline gap-1">
-                  <span className="text-2xl font-bold font-mono text-white">$100</span>
-                  <span className="text-xs font-mono text-slate-400">/ year</span>
-                </div>
-                <div className="text-[11px] font-mono text-emerald-400 mt-1">$8.33 / mo &bull; Billed annually</div>
+              {/* Monthly Plan */}
+<div className="mt-2 flex flex-col gap-1">
+  <span className="text-2xl font-bold font-mono text-white">
+    $15 / Month
+  </span>
+  <span className="text-lg font-bold font-mono text-emerald-300">
+    PKR 4,165 / Month
+  </span>
+</div>
+
+<div className="text-[11px] font-mono text-slate-500 mt-1">
+  Billed monthly • Cancel anytime
+</div>
+
+
+{/* Annual Plan */}
+<div className="mt-2 flex flex-col gap-1">
+  <span className="text-2xl font-bold font-mono text-white">
+    $150 / Year
+  </span>
+  <span className="text-lg font-bold font-mono text-emerald-300">
+    PKR 41,650 / Year
+  </span>
+</div>
+
+<div className="text-[11px] font-mono text-emerald-400 mt-1">
+  Annual Discount Price
+</div>
               </div>
             </div>
           </div>
