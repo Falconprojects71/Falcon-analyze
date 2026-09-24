@@ -288,15 +288,15 @@ export const ProUpgradeModal: React.FC<ProUpgradeModalProps> = ({
               {/* Monthly Plan */}
 <div className="mt-2 flex flex-col gap-1">
   <span className="text-2xl font-bold font-mono text-white">
-    $15 / Month
+    $150 / Year
   </span>
   <span className="text-lg font-bold font-mono text-emerald-300">
-    PKR 4,165 / Month
+    PKR 41,650 / Year
   </span>
 </div>
 
-<div className="text-[11px] font-mono text-slate-500 mt-1">
-  Billed monthly • Cancel anytime
+<div className="text-[11px] font-mono text-emerald-400 mt-1">
+  Annual Discount Price
 </div>
 
 
