@@ -318,7 +318,14 @@ export const ProUpgradeModal: React.FC<ProUpgradeModalProps> = ({
             >
               <CreditCard className="w-4 h-4" />
               <span>
-                Proceed to Checkout ({activeTier === 'monthly' ? '$9.99 / Month' : '$100 / Year'})
+              Proceed to Checkout (
+  {currency === 'USD'
+    ? activeTier === 'monthly'
+      ? '$15 / Month'
+      : '$150 / Year'
+    : activeTier === 'monthly'
+      ? 'PKR 4,165 / Month'
+      : 'PKR 41,650 / Year'}
               </span>
             </button>
 
