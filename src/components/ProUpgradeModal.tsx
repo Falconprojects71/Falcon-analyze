@@ -369,7 +369,7 @@ export const ProUpgradeModal: React.FC<ProUpgradeModalProps> = ({
   >
     USD
   </button>
-</d
+</div>
               <div className="flex gap-2">
                 <input
                   type="text"
