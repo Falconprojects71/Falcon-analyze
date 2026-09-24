@@ -44,7 +44,7 @@ export const ProUpgradeModal: React.FC<ProUpgradeModalProps> = ({
   isOpen,
   onClose,
   isProUser,
-  onActivatePro,
+  onActivate
   onDeactivatePro,
   onOpenOwnerLogin,
   freeLimitReached = false,
@@ -259,7 +259,9 @@ export const ProUpgradeModal: React.FC<ProUpgradeModalProps> = ({
                   )}
                 </div>
                 <div className="mt-2 flex items-baseline gap-1">
-                  <span className="text-2xl font-bold font-mono text-white">$9.99</span>
+              <span className="text-2xl font-bold font-mono text-white">
+  {currency === 'USD' ? '$15' : 'PKR 4,165'}
+</span>
                   <span className="text-xs font-mono text-slate-400">/ month</span>
                 </div>
                 <div className="text-[11px] font-mono text-slate-500 mt-1">Billed monthly &bull; Cancel anytime</div>
