@@ -50,6 +50,7 @@ export const ProUpgradeModal: React.FC<ProUpgradeModalProps> = ({
   freeLimitReached = false,
 }) => {
   const [activeTier, setActiveTier] = useState<'monthly' | 'annual'>('annual');
+  const [currency, setCurrency] = useState<'PKR' | 'USD'>('PKR');
   const [licenseInput, setLicenseInput] = useState('');
   const [licenseStatus, setLicenseStatus] = useState<{
     loading: boolean;
@@ -76,7 +77,7 @@ export const ProUpgradeModal: React.FC<ProUpgradeModalProps> = ({
       body: JSON.stringify({
         plan: activeTier === 'monthly' ? 'monthly' : 'yearly',
         userIdentifier: 'falcon-user',
-        currency: 'PKR',
+        currency,
       }),
     });
 
@@ -344,6 +345,31 @@ export const ProUpgradeModal: React.FC<ProUpgradeModalProps> = ({
             </div>
 
             <form onSubmit={handleVerifyLicense} className="space-y-2">
+              <div className="flex gap-2 mb-4">
+  <button
+    type="button"
+    onClick={() => setCurrency('PKR')}
+    className={`px-4 py-2 rounded-lg ${
+      currency === 'PKR'
+        ? 'bg-emerald-500 text-black'
+        : 'bg-gray-800 text-white'
+    }`}
+  >
+    PKR
+  </button>
+
+  <button
+    type="button"
+    onClick={() => setCurrency('USD')}
+    className={`px-4 py-2 rounded-lg ${
+      currency === 'USD'
+        ? 'bg-emerald-500 text-black'
+        : 'bg-gray-800 text-white'
+    }`}
+  >
+    USD
+  </button>
+</d
               <div className="flex gap-2">
                 <input
                   type="text"
