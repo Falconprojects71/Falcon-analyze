@@ -10,7 +10,7 @@ import { GoogleGenAI } from '@google/genai';
 // FALCON ANALYZE - PRODUCTION SERVER
 // ============================================================
 
-const PORT = Number(process.env.PORT || 3000);
+const PORT = Number(process.env.PORT || 4000);
 
 const MAX_FREE_ANALYSES = 3;
 const FREE_WINDOW_DAYS = 1;
