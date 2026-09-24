@@ -237,7 +237,7 @@ export const ProUpgradeModal: React.FC<ProUpgradeModalProps> = ({
             </div>
           )}
 
-          {/* Pricing Tiers Selection (Monthly $9.99 / Annual $100 — Lifetime removed) */}
+          {/* Pricing Tiers Selection — $15 / PKR 4,165 Monthly | $150 / PKR 41,650 Annual */}
           <div>
             <label className="text-xs font-mono text-slate-400 uppercase tracking-wider block mb-2 font-semibold">
               Select Subscription Plan:
