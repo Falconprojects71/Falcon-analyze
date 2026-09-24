@@ -44,7 +44,7 @@ export const ProUpgradeModal: React.FC<ProUpgradeModalProps> = ({
   isOpen,
   onClose,
   isProUser,
-  onActivate
+  onActivatePro,
   onDeactivatePro,
   onOpenOwnerLogin,
   freeLimitReached = false,
