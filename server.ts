@@ -1817,6 +1817,7 @@ app.get(
 app.post(
   '/api/safepay/checkout',
   async (req: Request, res: Response) => {
+    console.log('[SAFEPAY] Checkout endpoint reached');
     try {
       const {
         plan,
