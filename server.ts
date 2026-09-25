@@ -1927,11 +1927,6 @@ const planId =
         reference,
         plan,
       });
-  app.post(
-  '/api/safepay/checkout',
-  async (req: Request, res: Response) => {
-    try {
-      // ...
     } catch (error) {
       console.error(
         '[SAFEPAY] Checkout creation failed:',
