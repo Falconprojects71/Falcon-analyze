@@ -140,7 +140,7 @@ function buildSafepayCheckoutUrl(params: {
     cancel_url: params.cancelUrl,
   });
 
-  return `${SAFEPAY_CHECKOUT_HOST}/checkout/auth/login?${query.toString()}`;
+ return ${SAFEPAY_CHECKOUT_HOST}/checkout/auth/login?${query.toString()};
 }
 function getValidApiKey(): string {
   const key = env('GEMINI_API_KEY') || env('API_KEY') || env('GOOGLE_API_KEY');
