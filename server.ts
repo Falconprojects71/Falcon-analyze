@@ -1927,20 +1927,27 @@ const planId =
         reference,
         plan,
       });
-   } catch (error) {
-  console.error(
-    '[SAFEPAY] Checkout creation failed:',
-    error
-  );
+  app.post(
+  '/api/safepay/checkout',
+  async (req: Request, res: Response) => {
+    try {
+      // ...
+    } catch (error) {
+      console.error(
+        '[SAFEPAY] Checkout creation failed:',
+        error
+      );
 
-  return res.status(500).json({
-    success: false,
-    error:
-      error instanceof Error
-        ? error.message
-        : 'Unable to create Safepay checkout.',
-  });
-}
+      return res.status(500).json({
+        success: false,
+        error:
+          error instanceof Error
+            ? error.message
+            : 'Unable to create Safepay checkout.',
+      });
+    }
+  }
+);
 // ============================================================
 // SAFEPAY WEBHOOK
 // ============================================================
