@@ -258,12 +258,14 @@ export const ProUpgradeModal: React.FC<ProUpgradeModalProps> = ({
                     <span className="w-2 h-2 rounded-full bg-amber-400 shadow-[0_0_8px_rgba(245,158,11,0.8)]" />
                   )}
                 </div>
-                <div className="mt-2 flex items-baseline gap-1">
-              <span className="text-2xl font-bold font-mono text-white">
-  {currency === 'USD' ? '$15' : 'PKR 4,165'}
-</span>
-                  <span className="text-xs font-mono text-slate-400">/ month</span>
-                </div>
+<div className="mt-2 flex flex-col gap-1">
+  <span className="text-2xl font-bold font-mono text-white">
+    $15 / Month
+  </span>
+  <span className="text-lg font-bold font-mono text-emerald-300">
+    PKR 4,165 / Month
+  </span>
+</div>
                 <div className="text-[11px] font-mono text-slate-500 mt-1">Billed monthly &bull; Cancel anytime</div>
               </div>
 
