@@ -65,7 +65,7 @@ export const ProUpgradeModal: React.FC<ProUpgradeModalProps> = ({
 
   if (!isOpen) return null;
 
- const handleCheckoutClick = async () => {
+const handleCheckoutClick = async () => {
   setCheckoutNotice('Opening Safepay checkout...');
 
   try {
@@ -81,7 +81,17 @@ export const ProUpgradeModal: React.FC<ProUpgradeModalProps> = ({
       }),
     });
 
-    const data = await response.json();
+    const responseText = await response.text();
+
+    let data: any = {};
+
+    try {
+      data = JSON.parse(responseText);
+    } catch {
+      throw new Error(
+        Server returned non-JSON response (${response.status}): ${responseText.slice(0, 300)}
+      );
+    }
 
     if (!response.ok || !data.success || !data.checkoutUrl) {
       throw new Error(
