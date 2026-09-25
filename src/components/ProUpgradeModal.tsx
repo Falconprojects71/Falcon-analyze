@@ -89,7 +89,7 @@ const handleCheckoutClick = async () => {
       data = JSON.parse(responseText);
     } catch {
       throw new Error(
-        Server returned non-JSON response (${response.status}): ${responseText.slice(0, 300)}
+       `Server returned non-JSON response (${response.status}): ${responseText.slice(0, 300)}`
       );
     }
 
