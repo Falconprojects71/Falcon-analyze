@@ -91,11 +91,11 @@ async function getSafepayAuthToken(): Promise<string> {
     `${SAFEPAY_HOST}/client/passport/v1/token`,
     {
       method: 'POST',
-      headers: {
-        Authorization: `Bearer ${SAFEPAY_SECRET_KEY}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({}),
+     headers: {
+  'X-SFPY-MERCHANT-SECRET': SAFEPAY_SECRET_KEY,
+  'Content-Type': 'application/json',
+},
+body: JSON.stringify({}),
     }
   );
 
@@ -107,20 +107,20 @@ async function getSafepayAuthToken(): Promise<string> {
     );
   }
 
-  const data = await response.json() as {
-    token?: string;
-  };
+const data = await response.json() as {
+  data?: string;
+};
 
-  if (!data.token) {
-    throw new Error(
-      'Safepay auth token was not returned.'
-    );
-  }
+if (!data.data) {
+  throw new Error(
+    'Safepay auth token was not returned.'
+  );
+}
 
-  safepayAuthTokenCache = {
-    token: data.token,
-    expiresAt: now + 60 * 60 * 1000,
-  };
+safepayAuthTokenCache = {
+  token: data.data,
+  expiresAt: now + 60 * 60 * 1000,
+};
 
   return data.token;
 }
@@ -134,13 +134,13 @@ function buildSafepayCheckoutUrl(params: {
 }): string {
   const query = new URLSearchParams({
     plan_id: params.planId,
-    reference: params.reference,
+    auth_token: params.authToken,
+    env: 'production',
     redirect_url: params.redirectUrl,
     cancel_url: params.cancelUrl,
-    auth_token: params.authToken,
   });
 
-  return `${SAFEPAY_CHECKOUT_HOST}/checkout?${query.toString()}`;
+  return ${SAFEPAY_CHECKOUT_HOST}/checkout/auth/login?${query.toString()};
 }
 function getValidApiKey(): string {
   const key = env('GEMINI_API_KEY') || env('API_KEY') || env('GOOGLE_API_KEY');
