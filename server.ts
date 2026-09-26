@@ -2048,7 +2048,7 @@ app.post(
       }
 
       console.log(
-        [SAFEPAY] Webhook received: ${eventType}
+        `[SAFEPAY] Webhook received: ${eventType}`
       );
 
       res.status(200).send('OK');
