@@ -1951,7 +1951,7 @@ function verifySafepayWebhookSignature(
   rawBody: Buffer,
   receivedSignature: string
 ): boolean {
-  if (
+ if (
     !SAFEPAY_WEBHOOK_SECRET ||
     !receivedSignature
   ) {
@@ -1965,33 +1965,18 @@ function verifySafepayWebhookSignature(
         SAFEPAY_WEBHOOK_SECRET
       )
       .update(rawBody)
-      .digest('hex');
-
-  const receivedBuffer =
-    Buffer.from(
-      receivedSignature,
-      'hex'
-    );
-
-  const computedBuffer =
-    Buffer.from(
-      computedSignature,
-      'hex'
-    );
-
-  if (
-    receivedBuffer.length !==
-    computedBuffer.length
-  ) {
-    return false;
-  }
+      .digest('base64');
 
   return crypto.timingSafeEqual(
-    computedBuffer,
-    receivedBuffer
+    Buffer.from(
+      computedSignature,
+      'utf8'
+    ),
+    Buffer.from(
+      receivedSignature,
+      'utf8'
+    )
   );
-}
-
 app.post(
   '/api/safepay/webhook',
   async (
