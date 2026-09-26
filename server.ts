@@ -2121,7 +2121,7 @@ app.post(
 
         if (!existing) {
           console.warn(
-            [SAFEPAY] No pending subscription found for reference: ${reference}
+            `[SAFEPAY] No pending subscription found for reference: ${reference}`
           );
           return;
         }
