@@ -2012,6 +2012,17 @@ app.post(
         Buffer.isBuffer(req.body)
           ? req.body
           : Buffer.from('');
+// فائل: server.ts
+
+console.log(
+  '[SAFEPAY] Webhook debug:',
+  {
+    isBuffer: Buffer.isBuffer(req.body),
+    rawBodyLength: rawBody.length,
+    signaturePresent: Boolean(signature),
+    signatureLength: signature.length,
+  }
+);
 
       if (
         !verifySafepayWebhookSignature(
