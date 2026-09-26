@@ -2217,7 +2217,7 @@ app.post(
         persistPaidSubscriptions();
 
         console.log(
-          [SAFEPAY] Subscription access ended: ${reference}
+          `[SAFEPAY] Subscription access ended: ${reference}`
         );
 
         return;
