@@ -1977,6 +1977,7 @@ function verifySafepayWebhookSignature(
       'utf8'
     )
   );
+  }
 app.post(
   '/api/safepay/webhook',
   async (
