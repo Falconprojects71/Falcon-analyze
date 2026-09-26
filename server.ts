@@ -2178,7 +2178,7 @@ app.post(
         persistPaidSubscriptions();
 
         console.log(
-          [SAFEPAY] Subscription payment failed: ${reference}
+          `[SAFEPAY] Subscription payment failed: ${reference}`
         );
 
         return;
