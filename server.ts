@@ -1958,27 +1958,40 @@ function verifySafepayWebhookSignature(
     return false;
   }
 
-  const computedSignature =
-    crypto
-      .createHmac(
-        'sha256',
-        SAFEPAY_WEBHOOK_SECRET
-      )
-      .update(rawBody)
-      .digest('base64');
-
-  return crypto.timingSafeEqual(
-    Buffer.from(
-      computedSignature,
-      'utf8'
-    ),
-    Buffer.from(
-      receivedSignature,
-      'utf8'
+ const computedSignature =
+  crypto
+    .createHmac(
+      'sha256',
+      SAFEPAY_WEBHOOK_SECRET
     )
+    .update(rawBody)
+    .digest('hex');
+
+const receivedBuffer =
+  Buffer.from(
+    receivedSignature,
+    'hex'
   );
-  }
-app.post(
+
+const computedBuffer =
+  Buffer.from(
+    computedSignature,
+    'hex'
+  );
+
+if (
+  receivedBuffer.length !==
+  computedBuffer.length
+) {
+  return false;
+}
+
+return crypto.timingSafeEqual(
+  computedBuffer,
+  receivedBuffer
+);
+}
+
   '/api/safepay/webhook',
   async (
     req: Request,
