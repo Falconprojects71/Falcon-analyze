@@ -2224,7 +2224,7 @@ app.post(
       }
 
       console.log(
-        [SAFEPAY] Ignored event: ${eventType}
+        `[SAFEPAY] Ignored event: ${eventType}`
       );
     } catch (error) {
       console.error(
