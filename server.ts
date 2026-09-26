@@ -1944,54 +1944,56 @@ const planId =
   }
 );
 // ============================================================
-// SAFEPAY WEBHOOK
-// ============================================================
+ // SAFEPAY WEBHOOK
+ // ============================================================
 
 function verifySafepayWebhookSignature(
   rawBody: Buffer,
   receivedSignature: string
 ): boolean {
- if (
+  if (
     !SAFEPAY_WEBHOOK_SECRET ||
     !receivedSignature
   ) {
     return false;
   }
 
- const computedSignature =
-  crypto
-    .createHmac(
-      'sha256',
-      SAFEPAY_WEBHOOK_SECRET
-    )
-    .update(rawBody)
-    .digest('hex');
+  const computedSignature =
+    crypto
+      .createHmac(
+        'sha256',
+        SAFEPAY_WEBHOOK_SECRET
+      )
+      .update(rawBody)
+      .digest('hex');
 
-const receivedBuffer =
-  Buffer.from(
-    receivedSignature,
-    'hex'
+  const receivedBuffer =
+    Buffer.from(
+      receivedSignature,
+      'hex'
+    );
+
+  const computedBuffer =
+    Buffer.from(
+      computedSignature,
+      'hex'
+    );
+
+  if (
+    receivedBuffer.length !==
+    computedBuffer.length ||
+    receivedBuffer.length === 0
+  ) {
+    return false;
+  }
+
+  return crypto.timingSafeEqual(
+    computedBuffer,
+    receivedBuffer
   );
-
-const computedBuffer =
-  Buffer.from(
-    computedSignature,
-    'hex'
-  );
-
-if (
-  receivedBuffer.length !==
-  computedBuffer.length
-) {
-  return false;
 }
 
-return crypto.timingSafeEqual(
-  computedBuffer,
-  receivedBuffer
-);
-}
-
+app.post(
   '/api/safepay/webhook',
   async (
     req: Request,
@@ -1999,9 +2001,7 @@ return crypto.timingSafeEqual(
   ) => {
     try {
       const signatureHeader =
-        req.headers[
-          'x-sfpy-signature'
-        ];
+        req.headers['x-sfpy-signature'];
 
       const signature =
         typeof signatureHeader === 'string'
@@ -2013,7 +2013,6 @@ return crypto.timingSafeEqual(
           ? req.body
           : Buffer.from('');
 
-      // 1. Verify signature
       if (
         !verifySafepayWebhookSignature(
           rawBody,
@@ -2029,7 +2028,6 @@ return crypto.timingSafeEqual(
           .send('Invalid signature');
       }
 
-      // 2. Parse event
       const event =
         JSON.parse(
           rawBody.toString('utf8')
@@ -2038,11 +2036,6 @@ return crypto.timingSafeEqual(
       const eventType =
         typeof event?.type === 'string'
           ? event.type
-          : '';
-
-      const eventId =
-        typeof event?.id === 'string'
-          ? event.id
           : '';
 
       const eventData =
@@ -2055,26 +2048,21 @@ return crypto.timingSafeEqual(
       }
 
       console.log(
-        `[SAFEPAY] Webhook received: ${eventType}`
+        [SAFEPAY] Webhook received: ${eventType}
       );
 
-      // 3. Immediately acknowledge Safepay
       res.status(200).send('OK');
 
-      // 4. Process subscription event
       if (
-        eventType ===
-        'subscription.created'
+        eventType === 'subscription.created'
       ) {
         const reference =
-          typeof eventData.reference ===
-          'string'
+          typeof eventData.reference === 'string'
             ? eventData.reference
             : '';
 
         const subscriptionId =
-          typeof eventData.subscription_id ===
-          'string'
+          typeof eventData.subscription_id === 'string'
             ? eventData.subscription_id
             : '';
 
@@ -2086,9 +2074,7 @@ return crypto.timingSafeEqual(
         }
 
         const existing =
-          paidSubscriptionsList.get(
-            reference
-          );
+          paidSubscriptionsList.get(reference);
 
         if (existing) {
           existing.status = 'PENDING';
@@ -2114,14 +2100,12 @@ return crypto.timingSafeEqual(
         'subscription.payment.succeeded'
       ) {
         const reference =
-          typeof eventData.reference ===
-          'string'
+          typeof eventData.reference === 'string'
             ? eventData.reference
             : '';
 
         const subscriptionId =
-          typeof eventData.subscription_id ===
-          'string'
+          typeof eventData.subscription_id === 'string'
             ? eventData.subscription_id
             : '';
 
@@ -2133,13 +2117,11 @@ return crypto.timingSafeEqual(
         }
 
         const existing =
-          paidSubscriptionsList.get(
-            reference
-          );
+          paidSubscriptionsList.get(reference);
 
         if (!existing) {
           console.warn(
-            `[SAFEPAY] No pending subscription found for reference: ${reference}`
+            [SAFEPAY] No pending subscription found for reference: ${reference}
           );
           return;
         }
@@ -2162,7 +2144,7 @@ return crypto.timingSafeEqual(
         persistPaidSubscriptions();
 
         console.log(
-          `[SAFEPAY] Pro subscription activated: ${reference}`
+          [SAFEPAY] Pro subscription activated: ${reference}
         );
 
         return;
@@ -2173,23 +2155,18 @@ return crypto.timingSafeEqual(
         'subscription.payment.failed'
       ) {
         const reference =
-          typeof eventData.reference ===
-          'string'
+          typeof eventData.reference === 'string'
             ? eventData.reference
             : '';
 
         if (!reference) return;
 
         const existing =
-          paidSubscriptionsList.get(
-            reference
-          );
+          paidSubscriptionsList.get(reference);
 
         if (!existing) return;
 
-        existing.status =
-          'PAYMENT_FAILED';
-
+        existing.status = 'PAYMENT_FAILED';
         existing.updatedAt =
           new Date().toISOString();
 
@@ -2201,38 +2178,31 @@ return crypto.timingSafeEqual(
         persistPaidSubscriptions();
 
         console.log(
-          `[SAFEPAY] Subscription payment failed: ${reference}`
+          [SAFEPAY] Subscription payment failed: ${reference}
         );
 
         return;
       }
 
       if (
-        eventType ===
-        'subscription.cancelled' ||
-        eventType ===
-        'subscription.canceled' ||
-        eventType ===
-        'subscription.ended'
+        eventType === 'subscription.cancelled' ||
+        eventType === 'subscription.canceled' ||
+        eventType === 'subscription.ended'
       ) {
         const reference =
-          typeof eventData.reference ===
-          'string'
+          typeof eventData.reference === 'string'
             ? eventData.reference
             : '';
 
         if (!reference) return;
 
         const existing =
-          paidSubscriptionsList.get(
-            reference
-          );
+          paidSubscriptionsList.get(reference);
 
         if (!existing) return;
 
         existing.status =
-          eventType ===
-          'subscription.ended'
+          eventType === 'subscription.ended'
             ? 'ENDED'
             : 'CANCELED';
 
@@ -2247,14 +2217,14 @@ return crypto.timingSafeEqual(
         persistPaidSubscriptions();
 
         console.log(
-          `[SAFEPAY] Subscription access ended: ${reference}`
+          [SAFEPAY] Subscription access ended: ${reference}
         );
 
         return;
       }
 
       console.log(
-        `[SAFEPAY] Ignored event: ${eventType}`
+        [SAFEPAY] Ignored event: ${eventType}
       );
     } catch (error) {
       console.error(
@@ -2262,8 +2232,6 @@ return crypto.timingSafeEqual(
         error
       );
 
-      // If response has not already been sent,
-      // return an error.
       if (!res.headersSent) {
         return res
           .status(500)
