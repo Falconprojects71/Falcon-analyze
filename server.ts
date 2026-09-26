@@ -2144,7 +2144,7 @@ app.post(
         persistPaidSubscriptions();
 
         console.log(
-          [SAFEPAY] Pro subscription activated: ${reference}
+          `[SAFEPAY] Pro subscription activated: ${reference}`
         );
 
         return;
