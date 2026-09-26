@@ -1958,14 +1958,14 @@ function verifySafepayWebhookSignature(
     return false;
   }
 
-  const computedSignature =
-    crypto
-      .createHmac(
-        'sha256',
-        SAFEPAY_WEBHOOK_SECRET
-      )
-      .update(rawBody)
-      .digest('hex');
+ const computedSignature =
+  crypto
+    .createHmac(
+      'sha512',
+      SAFEPAY_WEBHOOK_SECRET
+    )
+    .update(rawBody)
+    .digest('hex');
 
   const receivedBuffer =
     Buffer.from(
