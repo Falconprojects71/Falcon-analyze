@@ -293,6 +293,8 @@ export default function App() {
       }
 
       const rawData = data.data || data;
+      console.log('[PRICE DEBUG] rawData.currentPrice:', rawData.currentPrice);
+console.log('[PRICE DEBUG] rawData.price:', rawData.price);
 
       const cleanedData: ChartAnalysisResult = {
         id: `analysis_${Date.now()}`,
