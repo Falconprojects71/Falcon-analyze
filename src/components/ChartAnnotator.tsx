@@ -239,12 +239,14 @@ export const ChartAnnotator: React.FC<ChartAnnotatorProps> = ({
               Timeframe: <strong className="text-cyan-300">{activeImage.timeframe}</strong>
             </span>
           )}
-          {analysis && typeof analysis.currentPrice === 'number' && analysis.currentPrice > 0 && (
-            <span>
-              Last Price Detected:{' '}
-              <strong className="text-white font-bold">${analysis.currentPrice.toLocaleString()}</strong>
-            </span>
-          )}
+          {analysis && Number(analysis.currentPrice) > 0 && (
+  <span>
+    Last Price Detected:{' '}
+    <strong className="text-white font-bold">
+      ${Number(analysis.currentPrice).toLocaleString()}
+    </strong>
+  </span>
+)}
         </div>
         <div className="text-slate-500">
           {images.length > 1 && uploadedCount > 1
