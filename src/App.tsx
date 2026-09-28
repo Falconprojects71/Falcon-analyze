@@ -80,12 +80,13 @@ export default function App() {
       const storedToken = localStorage.getItem('falcon_owner_token') || '';
 
       const res = await fetch('/api/usage-status', {
-        headers: {
-          'x-client-id': clientId,
-          'x-device-fingerprint': fingerprint,
-          'x-license-key': storedLicense,
-          'x-owner-token': storedToken,
-        },
+       headers: {
+  'x-client-id': clientId,
+  'x-device-fingerprint': fingerprint,
+  'x-license-key': storedLicense,
+  'x-owner-token': storedToken,
+  'x-user-identifier': userIdentifier,
+},
       });
       if (res.ok) {
         const data = await res.json();
