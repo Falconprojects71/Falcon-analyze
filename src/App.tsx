@@ -116,7 +116,7 @@ export default function App() {
     } catch (err) {
       console.warn('Failed to fetch usage status:', err);
     }
-  }, []);
+ }, [userIdentifier]);
 
   useEffect(() => {
     fetchUsageStatus();
