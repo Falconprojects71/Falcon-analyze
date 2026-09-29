@@ -3190,16 +3190,24 @@ app.post(
       // ------------------------------------------------------
 
       let analysisData =
-        normalizeAnalysis(
-          parsedResult,
-          {
-            asset,
-            timeframe,
-            tradingStyle,
-            timeframes: imageTimeframes,
-          }
-        );
+  normalizeAnalysis(
+    parsedResult,
+    {
+      asset,
+      timeframe,
+      tradingStyle,
+      timeframes: imageTimeframes,
+    }
+  );
 
+console.log('[PRICE SERVER DEBUG] parsedResult:', JSON.stringify(parsedResult));
+console.log('[PRICE SERVER DEBUG] analysisData:', JSON.stringify(analysisData));
+console.log('[PRICE SERVER DEBUG] ENTRY:', JSON.stringify(analysisData.entryZone));
+console.log('[PRICE SERVER DEBUG] SL/TP:', JSON.stringify({
+  stopLoss: analysisData.stopLoss,
+  takeProfit1: analysisData.takeProfit1,
+  takeProfit2: analysisData.takeProfit2,
+}));
       // ------------------------------------------------------
       // VALIDATE TRADE LOGIC
       // ------------------------------------------------------
