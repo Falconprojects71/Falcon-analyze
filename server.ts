@@ -451,6 +451,13 @@ function persistTestProUsers() {
   }
 
   writeJsonFile(TEST_PRO_FILE, data);
+
+  console.log(
+    '[TEST PRO STORAGE]',
+    TEST_PRO_FILE,
+    'users:',
+    Object.keys(data).length
+  );
 }
 function persistPaidSubscriptions() {
   const data: Record<string, PaidSubscriptionRecord> = {};
