@@ -520,7 +520,7 @@ console.log('[PRICE DEBUG] TP2:', rawData.takeProfit2, rawData.tp2);
             )}
 
             {/* Pro 3 Charts: New medium-size Result Card separately below the chart view */}
-            {analysisResult && (plan === 'pro' || isProUser || images.length > 1) && (
+            {analysisResult && (plan === 'pro' || isProUser || isTestPro || images.length > 1) && (
               <ProResultCard
                 analysis={analysisResult}
                 selectedInstrument={asset || analysisResult.asset}
