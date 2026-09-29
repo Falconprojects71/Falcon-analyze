@@ -260,6 +260,7 @@ export default function App() {
           'x-device-fingerprint': fingerprint,
           'x-license-key': storedLicense,
           'x-owner-token': storedToken,
+          'x-user-identifier': userIdentifier,
         },
         body: payload,
       });
