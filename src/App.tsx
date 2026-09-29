@@ -407,6 +407,8 @@ console.log('[PRICE DEBUG] TP2:', rawData.takeProfit2, rawData.tp2);
         },
         imagePreviewUrl: activeImage.base64,
       };
+      console.log('[TEST PRO PRICE CHECK] rawData:', rawData);
+console.log('[TEST PRO PRICE CHECK] cleanedData:', cleanedData);
 
       setAnalysisResult(cleanedData);
       saveToHistory(cleanedData);
