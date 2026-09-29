@@ -170,7 +170,6 @@ const GEMINI_FALLBACK_MODELS = [
   'gemini-flash-latest',
   'gemini-3.8-flash',
   'gemini-3.6-flash',
-  'gemini-2.5-flash',
 ].filter((v, i, a) => v && a.indexOf(v) === i);
 
 const DEFAULT_PRO_KEYS = [
