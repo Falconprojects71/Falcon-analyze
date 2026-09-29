@@ -295,6 +295,10 @@ export default function App() {
       const rawData = data.data || data;
       console.log('[PRICE DEBUG] rawData.currentPrice:', rawData.currentPrice);
 console.log('[PRICE DEBUG] rawData.price:', rawData.price);
+      console.log('[PRICE DEBUG] Entry:', rawData.entryZone, rawData.entry);
+console.log('[PRICE DEBUG] SL:', rawData.stopLoss, rawData.sl, rawData.stopLossVal);
+console.log('[PRICE DEBUG] TP1:', rawData.takeProfit1, rawData.tp1);
+console.log('[PRICE DEBUG] TP2:', rawData.takeProfit2, rawData.tp2);
 
       const cleanedData: ChartAnalysisResult = {
         id: `analysis_${Date.now()}`,
