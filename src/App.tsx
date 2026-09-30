@@ -265,14 +265,25 @@ export default function App() {
         body: payload,
       });
 
-      const text = await response.text();
-      let data: any = null;
-      try {
-        data = JSON.parse(text);
-      } catch (parseErr) {
-        throw new Error('Server returned invalid response. Check backend connection.');
-      }
+     const text = await response.text();
 
+console.log('[ANALYZE RESPONSE DEBUG]', {
+  status: response.status,
+  statusText: response.statusText,
+  contentType: response.headers.get('content-type'),
+  responseLength: text.length,
+  responsePreview: text.substring(0, 500),
+});
+
+let data: any = null;
+
+try {
+  data = JSON.parse(text);
+} catch (parseErr) {
+  throw new Error(
+    Server returned invalid response (${response.status}). ${text.substring(0, 150)}
+  );
+}
       if (data?.code === 'FREE_LIMIT_REACHED' || data?.limitReached) {
         setFreeLimitReached(true);
         setFreeAnalysisCount(data.freeAnalysisCount ?? maxFreeAnalyses);
