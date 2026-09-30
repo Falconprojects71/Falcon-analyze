@@ -28,6 +28,11 @@ const PAID_SUBSCRIPTIONS_FILE = path.join(
   DATA_DIR,
   'paid-subscriptions.json'
 );
+console.log('[STORAGE PATH]', {
+  cwd: process.cwd(),
+  dataDir: DATA_DIR,
+  testProFile: TEST_PRO_FILE,
+});
 // ============================================================
 // ENVIRONMENT / SECRETS
 // ============================================================
