@@ -3492,6 +3492,13 @@ async function startServer() {
   }
 
   ensureDataDirectory();
+  console.log('[STORAGE DEBUG]', {
+  cwd: process.cwd(),
+  dataDir: DATA_DIR,
+  testProFile: TEST_PRO_FILE,
+  testProUsers: testProUsersList.size,
+  testProFileExists: fs.existsSync(TEST_PRO_FILE),
+});
 
   app.listen(
     PORT,
