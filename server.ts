@@ -1410,6 +1410,41 @@ Only report support and resistance levels that are actually supported by visible
 
 When multiple screenshots are provided, you MUST identify support separately for EACH available timeframe.
 
+For a 3-chart Pro analysis:
+
+15M SUPPORT:
+- Identify the most relevant visible 15M support level.
+- Prefer recent swing low, demand zone, successful retest, liquidity sweep/reclaim, or repeated rejection.
+- Do NOT use a 1H or 4H level as the 15M support.
+- The 15M support price MUST come from the visible 15M chart.
+
+1H SUPPORT:
+- Identify the most relevant visible 1H support level.
+- Use 1H swing structure, demand, previous reaction, retest, or clearly visible support.
+- The 1H support price MUST come from the visible 1H chart.
+
+4H SUPPORT:
+- Identify the most relevant visible 4H support level.
+- Use major 4H swing structure, major demand, previous reaction, or clearly visible structural support.
+- The 4H support price MUST come from the visible 4H chart.
+
+COMBINED MAJOR SUPPORT:
+- After identifying the individual timeframe supports, determine the strongest major support relevant to the unified trade plan.
+- Prefer genuine confluence where 15M, 1H and/or 4H support areas overlap or are closely aligned.
+- If the timeframes have materially different support levels, choose the structurally most important level for the overall setup and explain why.
+- Do NOT pretend that different levels are the same level.
+- The combined major support MUST still be supported by visible chart evidence.
+
+CRITICAL:
+- Never copy the 1H/4H support into the 15M support field.
+- Never invent a 15M support if a 15M screenshot is not provided or its price scale is unreadable.
+- If a timeframe is unavailable, use:
+  "price": null,
+  "strength": "Unavailable",
+  "rationale": "No usable chart data for this timeframe."
+- Every available timeframe must be analyzed independently before creating the combined major support.
+When multiple screenshots are provided, you MUST identify support separately for EACH available timeframe.
+
 15M SUPPORT:
 - Identify the most relevant visible 15M support level.
 - Use recent 15M swing lows, demand zones, successful retests, liquidity sweeps/reclaims, or repeated price rejection.
