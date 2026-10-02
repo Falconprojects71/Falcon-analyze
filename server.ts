@@ -3499,6 +3499,11 @@ async function startServer() {
   testProUsers: testProUsersList.size,
   testProFileExists: fs.existsSync(TEST_PRO_FILE),
 });
+  console.log('[FILESYSTEM TEST]', {
+  cwd: process.cwd(),
+  dataDirExists: fs.existsSync(DATA_DIR),
+  testProFileExists: fs.existsSync(TEST_PRO_FILE),
+});
 
   app.listen(
     PORT,
