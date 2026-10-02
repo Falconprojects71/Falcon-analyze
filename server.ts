@@ -1805,28 +1805,6 @@ Never output WAIT, NO TRADE, or NO SETUP.
 The analysis must be based on the uploaded chart image(s), not on assumptions.
 `;
 }
-============================================================
-FINAL MULTI-TIMEFRAME SUPPORT REQUIREMENT
-============================================================
-
-For every Pro analysis with 3 uploaded screenshots:
-
-- Identify the 15M support level independently from the visible 15M chart.
-- Identify the 1H support level independently from the visible 1H chart.
-- Identify the 4H support level independently from the visible 4H chart.
-- Identify the Combined Major Support after comparing all three timeframes.
-
-The final analysis MUST NOT describe support only as "1H/4H support" when a usable 15M chart is available.
-
-The 15M support is mandatory and must be explicitly considered in the final target/support analysis.
-
-Never copy a 1H or 4H support level into the 15M support.
-
-If 15M, 1H and 4H supports are different, report them separately and explain which level is the Combined Major Support.
-
-If a timeframe is missing or its price scale is unreadable, do not invent a price. Mark that timeframe's support as unavailable.
-
-All support prices MUST come from visible chart evidence.
 
 // ============================================================
 // MIDDLEWARE
