@@ -1132,6 +1132,48 @@ function normalizeAnalysis(
       })
       .filter((s): s is { level: string; price: number; strength: string } => s !== null);
   }
+  // Normalize Multi-Timeframe Support
+  if (result.multiTimeframeSupport) {
+    const mts = result.multiTimeframeSupport;
+
+    normalized.multiTimeframeSupport = {
+      support15M: mts.support15M
+        ? {
+            ...mts.support15M,
+            price: parseNumericValue(mts.support15M.price) ?? undefined,
+            strength: mts.support15M.strength || 'Unavailable',
+            rationale: mts.support15M.rationale || '',
+          }
+        : undefined,
+
+      support1H: mts.support1H
+        ? {
+            ...mts.support1H,
+            price: parseNumericValue(mts.support1H.price) ?? undefined,
+            strength: mts.support1H.strength || 'Unavailable',
+            rationale: mts.support1H.rationale || '',
+          }
+        : undefined,
+
+      support4H: mts.support4H
+        ? {
+            ...mts.support4H,
+            price: parseNumericValue(mts.support4H.price) ?? undefined,
+            strength: mts.support4H.strength || 'Unavailable',
+            rationale: mts.support4H.rationale || '',
+          }
+        : undefined,
+
+      combinedMajorSupport: mts.combinedMajorSupport
+        ? {
+            ...mts.combinedMajorSupport,
+            price: parseNumericValue(mts.combinedMajorSupport.price) ?? undefined,
+            strength: mts.combinedMajorSupport.strength || 'Strong',
+            rationale: mts.combinedMajorSupport.rationale || '',
+          }
+        : undefined,
+    };
+  }
 
   // Normalize resistanceLevels
   if (Array.isArray(result.resistanceLevels)) {
