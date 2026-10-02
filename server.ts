@@ -1626,6 +1626,28 @@ Use this exact general structure:
       "strength": "Strong | Moderate | Weak"
     }
   ],
+  "multiTimeframeSupport": {
+  "support15M": {
+    "price": 0,
+    "strength": "Strong | Moderate | Weak | Unavailable",
+    "rationale": "string explaining the visible 15M support structure"
+  },
+  "support1H": {
+    "price": 0,
+    "strength": "Strong | Moderate | Weak | Unavailable",
+    "rationale": "string explaining the visible 1H support structure"
+  },
+  "support4H": {
+    "price": 0,
+    "strength": "Strong | Moderate | Weak | Unavailable",
+    "rationale": "string explaining the visible 4H support structure"
+  },
+  "combinedMajorSupport": {
+    "price": 0,
+    "strength": "Strong | Moderate | Weak",
+    "rationale": "string explaining why this is the combined major support"
+  }
+},
 
   "resistanceLevels": [
     {
