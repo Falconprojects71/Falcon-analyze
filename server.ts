@@ -313,22 +313,22 @@ interface ChartAnalysis {
   }>;
   multiTimeframeSupport?: {
     support15M?: {
-      price?: number;
+     price?: number | null;
       strength?: string;
       rationale?: string;
     };
     support1H?: {
-      price?: number;
+      price?: number | null;
       strength?: string;
       rationale?: string;
     };
     support4H?: {
-      price?: number;
+      price?: number | null;
       strength?: string;
       rationale?: string;
     };
     combinedMajorSupport?: {
-      price?: number;
+      price?: number | null;
       strength?: string;
       rationale?: string;
     };
