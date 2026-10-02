@@ -1140,7 +1140,9 @@ function normalizeAnalysis(
       support15M: mts.support15M
         ? {
             ...mts.support15M,
-            price: parseNumericValue(mts.support15M.price) ?? undefined,
+            price: mts.support15M.price === null
+  ? null
+  : parseNumericValue(mts.support15M.price) ?? undefined,
             strength: mts.support15M.strength || 'Unavailable',
             rationale: mts.support15M.rationale || '',
           }
@@ -1149,7 +1151,9 @@ function normalizeAnalysis(
       support1H: mts.support1H
         ? {
             ...mts.support1H,
-            price: parseNumericValue(mts.support1H.price) ?? undefined,
+            price: mts.support1H.price === null
+  ? null
+  : parseNumericValue(mts.support1H.price) ?? undefined,
             strength: mts.support1H.strength || 'Unavailable',
             rationale: mts.support1H.rationale || '',
           }
@@ -1158,7 +1162,9 @@ function normalizeAnalysis(
       support4H: mts.support4H
         ? {
             ...mts.support4H,
-            price: parseNumericValue(mts.support4H.price) ?? undefined,
+           price: mts.support4H.price === null
+  ? null
+  : parseNumericValue(mts.support4H.price) ?? undefined,
             strength: mts.support4H.strength || 'Unavailable',
             rationale: mts.support4H.rationale || '',
           }
@@ -1167,7 +1173,9 @@ function normalizeAnalysis(
       combinedMajorSupport: mts.combinedMajorSupport
         ? {
             ...mts.combinedMajorSupport,
-            price: parseNumericValue(mts.combinedMajorSupport.price) ?? undefined,
+            price: mts.combinedMajorSupport.price === null
+  ? null
+  : parseNumericValue(mts.combinedMajorSupport.price) ?? undefined,
             strength: mts.combinedMajorSupport.strength || 'Strong',
             rationale: mts.combinedMajorSupport.rationale || '',
           }
