@@ -1759,6 +1759,44 @@ Use this exact general structure:
 
   "detailedExplanation": "string"
 }
+============================================================
+FINAL SUPPORT REPORTING — MANDATORY
+============================================================
+
+Before writing the final explanation or unified trade plan, use the
+multiTimeframeSupport data that was identified from the charts.
+
+The final analysis MUST explicitly report:
+
+15M Support: [price or Unavailable]
+1H Support: [price or Unavailable]
+4H Support: [price or Unavailable]
+Combined Major Support: [price]
+
+For each available timeframe, briefly explain why that level qualifies
+as support based on visible chart structure.
+
+The final explanation MUST NOT replace these individual levels with a
+generic phrase such as:
+"1H/4H support"
+when a readable 15M chart is available.
+
+If the 15M, 1H and 4H support levels are different, preserve the
+differences and explain which one is the Combined Major Support.
+
+If multiple timeframe supports are closely aligned, explicitly mention
+the confluence.
+
+The Combined Major Support MUST be based on the actual visible
+timeframe support levels and MUST NOT be invented.
+
+If a timeframe is unavailable, explicitly write:
+"[Timeframe] Support: Unavailable"
+
+Never fabricate or estimate a missing support price.
+
+The final trade plan, TP logic, and support-based target discussion
+must remain consistent with these identified support levels.
 
 IMPORTANT:
 
