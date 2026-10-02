@@ -311,6 +311,28 @@ interface ChartAnalysis {
     price?: number;
     strength?: string;
   }>;
+  multiTimeframeSupport?: {
+    support15M?: {
+      price?: number;
+      strength?: string;
+      rationale?: string;
+    };
+    support1H?: {
+      price?: number;
+      strength?: string;
+      rationale?: string;
+    };
+    support4H?: {
+      price?: number;
+      strength?: string;
+      rationale?: string;
+    };
+    combinedMajorSupport?: {
+      price?: number;
+      strength?: string;
+      rationale?: string;
+    };
+  }
 
   resistanceLevels?: Array<{
     level?: string;
