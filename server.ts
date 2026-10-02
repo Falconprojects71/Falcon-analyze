@@ -1404,9 +1404,39 @@ TP2, if supplied, must be below TP1.
 
 TP3, if supplied, must be below TP2.
 
-8. SUPPORT AND RESISTANCE.
+8. SUPPORT AND RESISTANCE — MULTI-TIMEFRAME REQUIREMENT.
 
-Only report levels that are actually supported by visible chart structure.
+Only report support and resistance levels that are actually supported by visible chart structure.
+
+When multiple screenshots are provided, you MUST identify support separately for EACH available timeframe.
+
+15M SUPPORT:
+- Identify the most relevant visible 15M support level.
+- Use recent 15M swing lows, demand zones, successful retests, liquidity sweeps/reclaims, or repeated price rejection.
+- The 15M support MUST come from the visible 15M chart.
+- NEVER copy a 1H or 4H support level into the 15M support field.
+
+1H SUPPORT:
+- Identify the most relevant visible 1H support level.
+- Use 1H swing structure, demand zones, previous reactions, retests, or clearly visible structural support.
+- The 1H support MUST come from the visible 1H chart.
+
+4H SUPPORT:
+- Identify the most relevant visible 4H support level.
+- Use major 4H swing structure, major demand zones, previous reactions, or clearly visible structural support.
+- The 4H support MUST come from the visible 4H chart.
+
+COMBINED MAJOR SUPPORT:
+- After independently identifying 15M, 1H and 4H support, determine the strongest support relevant to the unified trade plan.
+- Prefer genuine confluence where multiple timeframes identify the same or closely overlapping support zone.
+- If the levels differ materially, select the structurally most important level and explain why.
+- Do NOT pretend different support levels are the same level.
+
+CRITICAL:
+- NEVER summarize support only as "1H/4H support" when a usable 15M chart is available.
+- The 15M support MUST be explicitly analyzed.
+- If a timeframe is not provided or its price scale is unreadable, do NOT invent a price.
+- For an unavailable timeframe use price null and explain that the timeframe was unavailable.
 
 9. MULTIPLE SCREENSHOTS (PRO MULTI-TIMEFRAME ANALYSIS).
 
