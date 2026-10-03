@@ -1190,7 +1190,7 @@ function normalizeAnalysis(
         const p = parseNumericValue(item?.price ?? item);
         if (p === null) return null;
         return {
-          level: item?.level || S${idx + 1},
+          level: item?.level || `S${idx + 1}`,
           price: p,
           strength: item?.strength || 'Strong',
         };
