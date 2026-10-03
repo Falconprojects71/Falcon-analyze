@@ -382,6 +382,41 @@ console.log('[PRICE DEBUG] TP2:', rawData.takeProfit2, rawData.tp2);
               }))
               .filter((s: any) => s.price > 0)
           : [],
+        multiTimeframeSupport: rawData.multiTimeframeSupport
+          ? {
+              support15M: rawData.multiTimeframeSupport.support15M
+                ? {
+                    price: rawData.multiTimeframeSupport.support15M.price ?? null,
+                    strength: rawData.multiTimeframeSupport.support15M.strength || 'Unavailable',
+                    rationale: rawData.multiTimeframeSupport.support15M.rationale || '',
+                  }
+                : undefined,
+
+              support1H: rawData.multiTimeframeSupport.support1H
+                ? {
+                    price: rawData.multiTimeframeSupport.support1H.price ?? null,
+                    strength: rawData.multiTimeframeSupport.support1H.strength || 'Unavailable',
+                    rationale: rawData.multiTimeframeSupport.support1H.rationale || '',
+                  }
+                : undefined,
+
+              support4H: rawData.multiTimeframeSupport.support4H
+                ? {
+                    price: rawData.multiTimeframeSupport.support4H.price ?? null,
+                    strength: rawData.multiTimeframeSupport.support4H.strength || 'Unavailable',
+                    rationale: rawData.multiTimeframeSupport.support4H.rationale || '',
+                  }
+                : undefined,
+
+              combinedMajorSupport: rawData.multiTimeframeSupport.combinedMajorSupport
+                ? {
+                    price: rawData.multiTimeframeSupport.combinedMajorSupport.price ?? null,
+                    strength: rawData.multiTimeframeSupport.combinedMajorSupport.strength || 'Strong',
+                    rationale: rawData.multiTimeframeSupport.combinedMajorSupport.rationale || '',
+                  }
+                : undefined,
+            }
+          : undefined,
         resistanceLevels: Array.isArray(rawData.resistanceLevels)
           ? rawData.resistanceLevels
               .map((r: any, idx: number) => ({
