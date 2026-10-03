@@ -1763,6 +1763,39 @@ Use this exact general structure:
 FINAL SUPPORT REPORTING — MANDATORY
 ============================================================
 
+STRICT SUPPORT LABELING RULE:
+
+NEVER write support references using combined timeframe labels such as:
+- "15M/4H support"
+- "1H/4H support"
+- "15M/1H support"
+- "15M/1H/4H support"
+
+These labels are forbidden in the final analysis.
+
+Every support reference MUST identify the exact timeframe:
+
+- 15M support → use ONLY the identified 15M support price.
+- 1H support → use ONLY the identified 1H support price.
+- 4H support → use ONLY the identified 4H support price.
+- Combined Major Support → use ONLY the identified combinedMajorSupport price.
+
+If a target is based on a support level, explicitly state which timeframe's
+support it is based on.
+
+For example:
+"TP1 is aligned with the 15M support at 4165."
+NOT:
+"TP1 is aligned with 15M/4H support."
+
+For the combined level write:
+"Combined Major Support is 4142, supported by the 1H and 4H structural levels."
+Do not call it "1H/4H support."
+
+The exact prices in the final explanation MUST match the prices in
+multiTimeframeSupport.
+
+Do not create a new support price in the explanation.
 Before writing the final explanation or unified trade plan, use the
 multiTimeframeSupport data that was identified from the charts.
 
