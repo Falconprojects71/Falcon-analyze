@@ -420,11 +420,15 @@ export const ProResultCard: React.FC<ProResultCardProps> = ({
 
           <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
             {[
-              ['15M Support', analysis.multiTimeframeSupport.support15M],
-              ['1H Support', analysis.multiTimeframeSupport.support1H],
-              ['4H Support', analysis.multiTimeframeSupport.support4H],
-              ['Combined Major Support', analysis.multiTimeframeSupport.combinedMajorSupport],
-            ].map(([label, level]: [string, any]) => (
+  ['15M Support', analysis.multiTimeframeSupport.support15M],
+  ['15M Resistance', analysis.multiTimeframeSupport.resistance15M],
+  ['1H Support', analysis.multiTimeframeSupport.support1H],
+  ['1H Resistance', analysis.multiTimeframeSupport.resistance1H],
+  ['4H Support', analysis.multiTimeframeSupport.support4H],
+  ['4H Resistance', analysis.multiTimeframeSupport.resistance4H],
+  ['Combined Major Support', analysis.multiTimeframeSupport.combinedMajorSupport],
+  ['Combined Major Resistance', analysis.multiTimeframeSupport.combinedMajorResistance],
+].map(([label, level]: [string, any]) => (
               <div
                 key={label}
                 className="rounded-lg bg-slate-900/80 border border-slate-800 p-2.5"
