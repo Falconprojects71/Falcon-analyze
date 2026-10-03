@@ -331,6 +331,122 @@ export const ProResultCard: React.FC<ProResultCardProps> = ({
           </div>
         </div>
       </div>
+      {/* SUPPORT & RESISTANCE LEVELS */}
+      <div className="relative z-10 grid grid-cols-1 md:grid-cols-2 gap-3 mb-3.5">
+        {/* Support Levels */}
+        <div className="bg-slate-950/70 border border-emerald-500/20 rounded-xl p-3.5">
+          <div className="flex items-center gap-2 pb-2 mb-2 border-b border-slate-800/80">
+            <TrendingDown className="w-3.5 h-3.5 text-emerald-400" />
+            <span className="text-xs font-mono font-bold uppercase tracking-wider text-slate-300">
+              Support Levels
+            </span>
+          </div>
+
+          {analysis.supportLevels && analysis.supportLevels.length > 0 ? (
+            <div className="space-y-1.5">
+              {analysis.supportLevels.map((level: any, idx: number) => (
+                <div
+                  key={support-${idx}}
+                  className="flex items-center justify-between gap-3 px-2.5 py-2 rounded-lg bg-slate-900/80 border border-slate-800"
+                >
+                  <div className="flex items-center gap-2 min-w-0">
+                    <span className="text-[11px] font-mono font-bold text-emerald-400">
+                      {level.level || S${idx + 1}}
+                    </span>
+                    <span className="text-xs font-mono text-slate-300">
+                      {level.strength || 'Strong'}
+                    </span>
+                  </div>
+                  <span className="text-sm font-mono font-bold text-emerald-300 shrink-0">
+                    {formatPrice(level.price)}
+                  </span>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-xs font-mono text-slate-500">
+              No visible support levels available.
+            </div>
+          )}
+        </div>
+
+        {/* Resistance Levels */}
+        <div className="bg-slate-950/70 border border-rose-500/20 rounded-xl p-3.5">
+          <div className="flex items-center gap-2 pb-2 mb-2 border-b border-slate-800/80">
+            <TrendingUp className="w-3.5 h-3.5 text-rose-400" />
+            <span className="text-xs font-mono font-bold uppercase tracking-wider text-slate-300">
+              Resistance Levels
+            </span>
+          </div>
+
+          {analysis.resistanceLevels && analysis.resistanceLevels.length > 0 ? (
+            <div className="space-y-1.5">
+              {analysis.resistanceLevels.map((level: any, idx: number) => (
+                <div
+                  key={resistance-${idx}}
+                  className="flex items-center justify-between gap-3 px-2.5 py-2 rounded-lg bg-slate-900/80 border border-slate-800"
+                >
+                  <div className="flex items-center gap-2 min-w-0">
+                    <span className="text-[11px] font-mono font-bold text-rose-400">
+                      {level.level || R${idx + 1}}
+                    </span>
+                    <span className="text-xs font-mono text-slate-300">
+                      {level.strength || 'Strong'}
+                    </span>
+                  </div>
+                  <span className="text-sm font-mono font-bold text-rose-300 shrink-0">
+                    {formatPrice(level.price)}
+                  </span>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-xs font-mono text-slate-500">
+              No visible resistance levels available.
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* MULTI-TIMEFRAME SUPPORT */}
+      {analysis.multiTimeframeSupport && (
+        <div className="relative z-10 bg-slate-950/70 border border-cyan-500/20 rounded-xl p-3.5 mb-3.5">
+          <div className="flex items-center gap-2 pb-2 mb-2 border-b border-slate-800/80">
+            <Layers className="w-3.5 h-3.5 text-cyan-400" />
+            <span className="text-xs font-mono font-bold uppercase tracking-wider text-slate-300">
+              Multi-Timeframe Support
+            </span>
+          </div>
+
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+            {[
+              ['15M Support', analysis.multiTimeframeSupport.support15M],
+              ['1H Support', analysis.multiTimeframeSupport.support1H],
+              ['4H Support', analysis.multiTimeframeSupport.support4H],
+              ['Combined Major Support', analysis.multiTimeframeSupport.combinedMajorSupport],
+            ].map(([label, level]: [string, any]) => (
+              <div
+                key={label}
+                className="rounded-lg bg-slate-900/80 border border-slate-800 p-2.5"
+              >
+                <div className="text-[10px] font-mono font-bold uppercase tracking-wide text-slate-400">
+                  {label}
+                </div>
+                <div className="mt-1 text-sm font-mono font-bold text-cyan-300">
+                  {level?.price !== null && level?.price !== undefined
+                    ? formatPrice(level.price)
+                    : 'Unavailable'}
+                </div>
+                {level?.strength && (
+                  <div className="mt-0.5 text-[10px] font-mono text-slate-500">
+                    {level.strength}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* 3-CHART INSIGHTS SECTION */}
       <div className="relative z-10 bg-slate-950/70 border border-slate-800 rounded-xl p-3.5 mb-3.5 space-y-2.5">
