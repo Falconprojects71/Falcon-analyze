@@ -1180,9 +1180,52 @@ function normalizeAnalysis(
             rationale: mts.combinedMajorSupport.rationale || '',
           }
         : undefined,
+      resistance15M: mts.resistance15M
+        ? {
+            ...mts.resistance15M,
+            price: mts.resistance15M.price === null
+              ? null
+              : parseNumericValue(mts.resistance15M.price) ?? undefined,
+            strength: mts.resistance15M.strength || 'Unavailable',
+            rationale: mts.resistance15M.rationale || '',
+          }
+        : undefined,
+
+      resistance1H: mts.resistance1H
+        ? {
+            ...mts.resistance1H,
+            price: mts.resistance1H.price === null
+              ? null
+              : parseNumericValue(mts.resistance1H.price) ?? undefined,
+            strength: mts.resistance1H.strength || 'Unavailable',
+            rationale: mts.resistance1H.rationale || '',
+          }
+        : undefined,
+
+      resistance4H: mts.resistance4H
+        ? {
+            ...mts.resistance4H,
+            price: mts.resistance4H.price === null
+              ? null
+              : parseNumericValue(mts.resistance4H.price) ?? undefined,
+            strength: mts.resistance4H.strength || 'Unavailable',
+            rationale: mts.resistance4H.rationale || '',
+          }
+        : undefined,
+
+      combinedMajorResistance: mts.combinedMajorResistance
+        ? {
+            ...mts.combinedMajorResistance,
+            price: mts.combinedMajorResistance.price === null
+              ? null
+              : parseNumericValue(mts.combinedMajorResistance.price) ?? undefined,
+            strength: mts.combinedMajorResistance.strength || 'Strong',
+            rationale: mts.combinedMajorResistance.rationale || '',
+          }
+        : undefined,
     };
   }
-  
+ 
 // Normalize supportLevels
   if (Array.isArray(result.supportLevels)) {
     normalized.supportLevels = result.supportLevels
