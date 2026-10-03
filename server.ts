@@ -1588,6 +1588,43 @@ Do not use an arbitrary fixed percentage simply because the template contains on
 TAKE PROFITS
 ============================================================
 
+MULTI-TIMEFRAME SUPPORT TARGET RULE:
+
+When a Take Profit target is based on support, you MUST identify the
+exact support timeframe and use the exact price from
+multiTimeframeSupport.
+
+For SELL trades:
+- If TP1 is based on 15M support, use the 15M support price and say
+  "15M support".
+- If TP1 is based on 1H support, use the 1H support price and say
+  "1H support".
+- If TP1 is based on 4H support, use the 4H support price and say
+  "4H support".
+- If TP1 or TP2 is based on Combined Major Support, say
+  "Combined Major Support" and use its exact price.
+
+The same rule applies to TP2 and TP3.
+
+STRICTLY FORBIDDEN:
+- "15M/4H support"
+- "1H/4H support"
+- "15M/1H support"
+- "15M/1H/4H support"
+- Any other combined timeframe label for an individual support.
+
+Never merge two timeframe labels into one support reference.
+
+If multiple timeframe supports are close to each other, keep their
+individual identities separate and mention confluence separately.
+
+The support price mentioned in TP rationale MUST exactly match one of:
+- multiTimeframeSupport.support15M.price
+- multiTimeframeSupport.support1H.price
+- multiTimeframeSupport.support4H.price
+- multiTimeframeSupport.combinedMajorSupport.price
+
+Do NOT create a new support price inside the TP rationale.
 Targets should be based on visible structure such as:
 - next resistance
 - next support
