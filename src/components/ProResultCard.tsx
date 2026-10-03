@@ -351,7 +351,7 @@ export const ProResultCard: React.FC<ProResultCardProps> = ({
                 >
                   <div className="flex items-center gap-2 min-w-0">
                     <span className="text-[11px] font-mono font-bold text-emerald-400">
-                      {level.level || S${idx + 1}}
+                      {level.level || `S${idx + 1}`}
                     </span>
                     <span className="text-xs font-mono text-slate-300">
                       {level.strength || 'Strong'}
@@ -388,7 +388,7 @@ export const ProResultCard: React.FC<ProResultCardProps> = ({
                 >
                   <div className="flex items-center gap-2 min-w-0">
                     <span className="text-[11px] font-mono font-bold text-rose-400">
-                      {level.level || R${idx + 1}}
+                      {level.level || `R${idx + 1}`}
                     </span>
                     <span className="text-xs font-mono text-slate-300">
                       {level.strength || 'Strong'}
