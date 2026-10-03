@@ -383,7 +383,7 @@ export const ProResultCard: React.FC<ProResultCardProps> = ({
             <div className="space-y-1.5">
               {analysis.resistanceLevels.map((level: any, idx: number) => (
                 <div
-                  key={resistance-${idx}}
+                  key={`resistance-${idx}`}
                   className="flex items-center justify-between gap-3 px-2.5 py-2 rounded-lg bg-slate-900/80 border border-slate-800"
                 >
                   <div className="flex items-center gap-2 min-w-0">
