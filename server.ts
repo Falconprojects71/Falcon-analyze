@@ -1749,6 +1749,27 @@ Use this exact general structure:
     "rationale": "string explaining why this is the combined major support"
   }
 },
+,
+    "resistance15M": {
+      "price": 0,
+      "strength": "Strong | Moderate | Weak | Unavailable",
+      "rationale": "string explaining the visible 15M resistance structure"
+    },
+    "resistance1H": {
+      "price": 0,
+      "strength": "Strong | Moderate | Weak | Unavailable",
+      "rationale": "string explaining the visible 1H resistance structure"
+    },
+    "resistance4H": {
+      "price": 0,
+      "strength": "Strong | Moderate | Weak | Unavailable",
+      "rationale": "string explaining the visible 4H resistance structure"
+    },
+    "combinedMajorResistance": {
+      "price": 0,
+      "strength": "Strong | Moderate | Weak",
+      "rationale": "string explaining why this is the combined major resistance"
+    }
 
   "resistanceLevels": [
     {
