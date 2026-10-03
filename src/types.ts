@@ -94,12 +94,51 @@ export interface ChartAnalysisResult {
   supportLevels: PriceLevel[];
   resistanceLevels: PriceLevel[];
 
-  multiTimeframeSupport?: {
+multiTimeframeSupport?: {
     support15M?: {
       price?: number | null;
       strength?: string;
       rationale?: string;
     };
+    resistance15M?: {
+      price?: number | null;
+      strength?: string;
+      rationale?: string;
+    };
+
+    support1H?: {
+      price?: number | null;
+      strength?: string;
+      rationale?: string;
+    };
+    resistance1H?: {
+      price?: number | null;
+      strength?: string;
+      rationale?: string;
+    };
+
+    support4H?: {
+      price?: number | null;
+      strength?: string;
+      rationale?: string;
+    };
+    resistance4H?: {
+      price?: number | null;
+      strength?: string;
+      rationale?: string;
+    };
+
+    combinedMajorSupport?: {
+      price?: number | null;
+      strength?: string;
+      rationale?: string;
+    };
+    combinedMajorResistance?: {
+      price?: number | null;
+      strength?: string;
+      rationale?: string;
+    };
+  };
     support1H?: {
       price?: number | null;
       strength?: string;
