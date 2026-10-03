@@ -1182,7 +1182,21 @@ function normalizeAnalysis(
         : undefined,
     };
   }
-
+  
+// Normalize supportLevels
+  if (Array.isArray(result.supportLevels)) {
+    normalized.supportLevels = result.supportLevels
+      .map((item: any, idx: number) => {
+        const p = parseNumericValue(item?.price ?? item);
+        if (p === null) return null;
+        return {
+          level: item?.level || S${idx + 1},
+          price: p,
+          strength: item?.strength || 'Strong',
+        };
+      })
+      .filter((s): s is { level: string; price: number; strength: string } => s !== null);
+  }
   // Normalize resistanceLevels
   if (Array.isArray(result.resistanceLevels)) {
     normalized.resistanceLevels = result.resistanceLevels
