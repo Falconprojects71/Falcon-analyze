@@ -93,6 +93,29 @@ export interface ChartAnalysisResult {
   entryZone: EntryZone;
   supportLevels: PriceLevel[];
   resistanceLevels: PriceLevel[];
+
+  multiTimeframeSupport?: {
+    support15M?: {
+      price?: number | null;
+      strength?: string;
+      rationale?: string;
+    };
+    support1H?: {
+      price?: number | null;
+      strength?: string;
+      rationale?: string;
+    };
+    support4H?: {
+      price?: number | null;
+      strength?: string;
+      rationale?: string;
+    };
+    combinedMajorSupport?: {
+      price?: number | null;
+      strength?: string;
+      rationale?: string;
+    };
+  };
   stopLoss: StopLoss;
   takeProfit1: TakeProfit;
   takeProfit2: TakeProfit;
