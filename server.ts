@@ -1132,6 +1132,27 @@ function normalizeAnalysis(
       })
       .filter((s): s is { level: string; price: number; strength: string } => s !== null);
   }
+  // Move timeframe resistance fields into multiTimeframeSupport
+  if (
+    result.resistance15M ||
+    result.resistance1H ||
+    result.resistance4H ||
+    result.combinedMajorResistance
+  ) {
+    result.multiTimeframeSupport = result.multiTimeframeSupport || {};
+
+    result.multiTimeframeSupport.resistance15M =
+      result.resistance15M;
+
+    result.multiTimeframeSupport.resistance1H =
+      result.resistance1H;
+
+    result.multiTimeframeSupport.resistance4H =
+      result.resistance4H;
+
+    result.multiTimeframeSupport.combinedMajorResistance =
+      result.combinedMajorResistance;
+  }
   // Normalize Multi-Timeframe Support
   if (result.multiTimeframeSupport) {
     const mts = result.multiTimeframeSupport;
