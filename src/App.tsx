@@ -417,6 +417,37 @@ console.log('[PRICE DEBUG] TP2:', rawData.takeProfit2, rawData.tp2);
                 : undefined,
             }
           : undefined,
+        resistance15M: rawData.multiTimeframeSupport.resistance15M
+                ? {
+                    price: rawData.multiTimeframeSupport.resistance15M.price ?? null,
+                    strength: rawData.multiTimeframeSupport.resistance15M.strength || 'Unavailable',
+                    rationale: rawData.multiTimeframeSupport.resistance15M.rationale || '',
+                  }
+                : undefined,
+
+              resistance1H: rawData.multiTimeframeSupport.resistance1H
+                ? {
+                    price: rawData.multiTimeframeSupport.resistance1H.price ?? null,
+                    strength: rawData.multiTimeframeSupport.resistance1H.strength || 'Unavailable',
+                    rationale: rawData.multiTimeframeSupport.resistance1H.rationale || '',
+                  }
+                : undefined,
+
+              resistance4H: rawData.multiTimeframeSupport.resistance4H
+                ? {
+                    price: rawData.multiTimeframeSupport.resistance4H.price ?? null,
+                    strength: rawData.multiTimeframeSupport.resistance4H.strength || 'Unavailable',
+                    rationale: rawData.multiTimeframeSupport.resistance4H.rationale || '',
+                  }
+                : undefined,
+
+              combinedMajorResistance: rawData.multiTimeframeSupport.combinedMajorResistance
+                ? {
+                    price: rawData.multiTimeframeSupport.combinedMajorResistance.price ?? null,
+                    strength: rawData.multiTimeframeSupport.combinedMajorResistance.strength || 'Strong',
+                    rationale: rawData.multiTimeframeSupport.combinedMajorResistance.rationale || '',
+                  }
+                : undefined,
         resistanceLevels: Array.isArray(rawData.resistanceLevels)
           ? rawData.resistanceLevels
               .map((r: any, idx: number) => ({
