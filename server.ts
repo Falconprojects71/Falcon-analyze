@@ -1802,44 +1802,42 @@ Use this exact general structure:
     "strength": "Strong | Moderate | Weak | Unavailable",
     "rationale": "string explaining the visible 15M support structure"
   },
+  "resistance15M": {
+    "price": 0,
+    "strength": "Strong | Moderate | Weak | Unavailable",
+    "rationale": "string explaining the visible 15M resistance structure"
+  },
   "support1H": {
     "price": 0,
     "strength": "Strong | Moderate | Weak | Unavailable",
     "rationale": "string explaining the visible 1H support structure"
+  },
+  "resistance1H": {
+    "price": 0,
+    "strength": "Strong | Moderate | Weak | Unavailable",
+    "rationale": "string explaining the visible 1H resistance structure"
   },
   "support4H": {
     "price": 0,
     "strength": "Strong | Moderate | Weak | Unavailable",
     "rationale": "string explaining the visible 4H support structure"
   },
+  "resistance4H": {
+    "price": 0,
+    "strength": "Strong | Moderate | Weak | Unavailable",
+    "rationale": "string explaining the visible 4H resistance structure"
+  },
   "combinedMajorSupport": {
     "price": 0,
     "strength": "Strong | Moderate | Weak",
     "rationale": "string explaining why this is the combined major support"
+  },
+  "combinedMajorResistance": {
+    "price": 0,
+    "strength": "Strong | Moderate | Weak",
+    "rationale": "string explaining why this is the combined major resistance"
   }
 },
-,
-    "resistance15M": {
-      "price": 0,
-      "strength": "Strong | Moderate | Weak | Unavailable",
-      "rationale": "string explaining the visible 15M resistance structure"
-    },
-    "resistance1H": {
-      "price": 0,
-      "strength": "Strong | Moderate | Weak | Unavailable",
-      "rationale": "string explaining the visible 1H resistance structure"
-    },
-    "resistance4H": {
-      "price": 0,
-      "strength": "Strong | Moderate | Weak | Unavailable",
-      "rationale": "string explaining the visible 4H resistance structure"
-    },
-    "combinedMajorResistance": {
-      "price": 0,
-      "strength": "Strong | Moderate | Weak",
-      "rationale": "string explaining why this is the combined major resistance"
-    }
-
   "resistanceLevels": [
     {
       "level": "R1",
