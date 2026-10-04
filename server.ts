@@ -1137,6 +1137,16 @@ function normalizeAnalysis(
       })
       .filter((s): s is { level: string; price: number; strength: string } => s !== null);
   }
+  console.log('[RESISTANCE NORMALIZE DEBUG]', {
+  topLevelResistance15M: result.resistance15M,
+  topLevelResistance1H: result.resistance1H,
+  topLevelResistance4H: result.resistance4H,
+  topLevelCombinedMajorResistance: result.combinedMajorResistance,
+  nestedResistance15M: result.multiTimeframeSupport?.resistance15M,
+  nestedResistance1H: result.multiTimeframeSupport?.resistance1H,
+  nestedResistance4H: result.multiTimeframeSupport?.resistance4H,
+  nestedCombinedMajorResistance: result.multiTimeframeSupport?.combinedMajorResistance,
+});
   // Move timeframe resistance fields into multiTimeframeSupport
   if (
     result.resistance15M ||
