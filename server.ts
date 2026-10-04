@@ -11,6 +11,11 @@ import { GoogleGenAI } from '@google/genai';
 // ============================================================
 
 const PORT = Number(process.env.PORT) || 3000;
+console.log('[PORT DEBUG]', {
+  envPort: process.env.PORT,
+  resolvedPort: PORT,
+  host: '0.0.0.0',
+});
 
 const MAX_FREE_ANALYSES = 3;
 const FREE_WINDOW_DAYS = 1;
