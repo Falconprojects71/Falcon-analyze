@@ -438,10 +438,8 @@ export const ProResultCard: React.FC<ProResultCardProps> = ({
                 </div>
                 <div className="mt-1 text-sm font-mono font-bold text-cyan-300">
                   {level?.price !== null && level?.price !== undefined
-  ? formatPrice(level.price)
-  : level?.value !== null && level?.value !== undefined
-    ? formatPrice(level.value)
-    : 'Unavailable'}
+  ? String(level.price)
+  : 'Unavailable'}
                 </div>
                 {level?.strength && (
                   <div className="mt-0.5 text-[10px] font-mono text-slate-500">
