@@ -87,10 +87,6 @@ const resistance15M = mtfSupport?.resistance15M;
 const resistance1H = mtfSupport?.resistance1H;
 const resistance4H = mtfSupport?.resistance4H;
 const combinedMajorResistance = mtfSupport?.combinedMajorResistance;
-  const resistance15M = mtfSupport?.resistance15M;
-  const resistance1H = mtfSupport?.resistance1H;
-  const resistance4H = mtfSupport?.resistance4H;
-  const combinedMajorResistance = mtfSupport?.combinedMajorResistance;
 
   // Determine Entry Zone display
   const getEntryDisplay = (): string => {
