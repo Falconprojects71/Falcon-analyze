@@ -260,8 +260,8 @@ try {
       );
 
       return {
-        id: img.id || img_${index + 1},
-        name: img.name || Chart ${index + 1},
+        id: img.id || `img_${index + 1},
+        name: img.name || `Chart ${index + 1},
         imageBase64: raster.base64,
         mimeType: raster.mimeType,
         timeframe: img.timeframe,
