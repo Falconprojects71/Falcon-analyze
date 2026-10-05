@@ -419,36 +419,42 @@ export const ProResultCard: React.FC<ProResultCardProps> = ({
           </div>
 
           <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-            {[
-  ['15M Support', analysis.multiTimeframeSupport.support15M],
-  ['15M Resistance', analysis.multiTimeframeSupport.resistance15M],
-  ['1H Support', analysis.multiTimeframeSupport.support1H],
-  ['1H Resistance', analysis.multiTimeframeSupport.resistance1H],
-  ['4H Support', analysis.multiTimeframeSupport.support4H],
-  ['4H Resistance', analysis.multiTimeframeSupport.resistance4H],
-  ['Combined Major Support', analysis.multiTimeframeSupport.combinedMajorSupport],
-  ['Combined Major Resistance', analysis.multiTimeframeSupport.combinedMajorResistance],
-].map(([label, level]: [string, any]) => (
-              <div
-                key={label}
-                className="rounded-lg bg-slate-900/80 border border-slate-800 p-2.5"
-              >
-                <div className="text-[10px] font-mono font-bold uppercase tracking-wide text-slate-400">
-                  {label}
-                </div>
-                <div className="mt-1 text-sm font-mono font-bold text-cyan-300">
-                  {level?.price !== null && level?.price !== undefined
-  ? String(level.price)
-  : 'Unavailable'}
-                </div>
-                {level?.strength && (
-                  <div className="mt-0.5 text-[10px] font-mono text-slate-500">
-                    {level.strength}
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
+  {[
+    ['15M Support', analysis.multiTimeframeSupport.support15M],
+    ['15M Resistance', analysis.multiTimeframeSupport.resistance15M],
+    ['1H Support', analysis.multiTimeframeSupport.support1H],
+    ['1H Resistance', analysis.multiTimeframeSupport.resistance1H],
+    ['4H Support', analysis.multiTimeframeSupport.support4H],
+    ['4H Resistance', analysis.multiTimeframeSupport.resistance4H],
+    ['Combined Major Support', analysis.multiTimeframeSupport.combinedMajorSupport],
+    ['Combined Major Resistance', analysis.multiTimeframeSupport.combinedMajorResistance],
+  ].map(([label, level]: [string, any]) => (
+    <div
+      key={label}
+      className="rounded-lg bg-slate-900/80 border border-slate-800 p-2.5"
+    >
+      <div className="text-[11px] text-slate-400">
+        {label}
+      </div>
+
+      <div className="mt-1 text-sm font-mono font-bold text-cyan-300">
+        {level?.price !== null && level?.price !== undefined
+          ? String(level.price)
+          : 'Unavailable'}
+      </div>
+
+      <div className="mt-1 text-[10px] text-slate-500">
+        {level?.strength || 'Unavailable'}
+      </div>
+
+      {level?.rationale && (
+        <div className="mt-1 text-[10px] text-slate-500">
+          {level.rationale}
+        </div>
+      )}
+    </div>
+  ))}
+</div>
         </div>
       )}
 
