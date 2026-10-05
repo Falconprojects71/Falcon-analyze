@@ -397,7 +397,7 @@ try {
         'Technical structure aligns with directional momentum.',
       timeframeContext:
         rawData.verdict?.timeframeContext ||
-        ${timeframe || '1H'} Structure Analysis,
+        `${timeframe || '1H'} Structure Analysis`,
     },
 
     entryZone: {
