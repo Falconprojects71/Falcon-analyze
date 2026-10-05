@@ -365,7 +365,7 @@ try {
   );
 
   const cleanedData: ChartAnalysisResult = {
-    id: analysis_${Date.now()},
+    id: `analysis_${Date.now()}`,
     timestamp: Date.now(),
     asset: rawData.asset || asset || 'BTC/USDT',
     timeframe: rawData.timeframe || timeframe || '1H',
