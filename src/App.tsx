@@ -311,7 +311,7 @@ try {
     data = JSON.parse(text);
   } catch (parseErr) {
     throw new Error(
-      Server returned invalid response (${response.status}). ${text.substring(0, 150)}
+      `Server returned invalid response (${response.status}). ${text.substring(0, 150)}`
     );
   }
 
