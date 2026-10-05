@@ -647,8 +647,8 @@ try {
     resistanceLevels: Array.isArray(rawData.resistanceLevels)
       ? rawData.resistanceLevels
           .map((r: any, idx: number) => ({
-            level: r.level || R${idx + 1},
-            label: r.label || r.level || R${idx + 1},
+            level: r.level || `R${idx + 1}`,
+            label: r.label || r.level || `R${idx + 1}`,
             price: Number(r.price ?? r ?? 0),
             strength: r.strength || 'Strong',
             note: r.note || '',
