@@ -81,6 +81,12 @@ console.log('[PRO CARD RESISTANCE DEBUG]', {
       ? `$${num.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`
       : `$${num.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 6 })}`;
   };
+  const mtfSupport = analysis.multiTimeframeSupport;
+
+  const resistance15M = mtfSupport?.resistance15M;
+  const resistance1H = mtfSupport?.resistance1H;
+  const resistance4H = mtfSupport?.resistance4H;
+  const combinedMajorResistance = mtfSupport?.combinedMajorResistance;
 
   // Determine Entry Zone display
   const getEntryDisplay = (): string => {
