@@ -26,6 +26,14 @@ export const ProResultCard: React.FC<ProResultCardProps> = ({
   selectedInstrument,
   tradingStyle,
 }) => {
+console.log('[PRO CARD RESISTANCE DEBUG]', {
+    multiTimeframeSupport: analysis.multiTimeframeSupport,
+    resistance15M: analysis.multiTimeframeSupport?.resistance15M,
+    resistance1H: analysis.multiTimeframeSupport?.resistance1H,
+    resistance4H: analysis.multiTimeframeSupport?.resistance4H,
+    combinedMajorResistance:
+      analysis.multiTimeframeSupport?.combinedMajorResistance,
+  });
   // Normalize signal to: BUY, SELL, or WAIT
   const rawSignal = String(analysis.verdict?.signal || '').toUpperCase().trim();
   let signalType: 'BUY' | 'SELL' | 'WAIT' = 'BUY';
