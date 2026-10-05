@@ -1650,19 +1650,125 @@ Position:
 Focus on broad market structure and major levels.
 
 ============================================================
-ENTRY LOGIC
+ENTRY / STOP LOSS / TAKE PROFIT EXECUTION LOGIC
 ============================================================
 
-For BUY:
-Prefer a pullback/retest or confirmation area below/around current price when technically justified.
+The trade setup MUST be built from the identified multi-timeframe
+support and resistance levels.
 
-For SELL:
-Prefer a rejection/retest or confirmation area above/around current price when technically justified.
+Do NOT use the current market price as the Entry simply because it is
+visible.
 
-Do not chase price.
+------------------------------------------------------------
+SELL SETUP
+------------------------------------------------------------
 
-Do not use the current price as Entry unless the chart clearly shows that the current price itself is a valid execution trigger according to the visible setup.
+When the final signal is SELL:
 
+1. ENTRY
+- The preferred SELL Entry must be near the identified 15M Resistance.
+- Prefer a rejection, sweep-and-rejection, or bearish confirmation at
+  the 15M resistance area.
+- entryZone.min and entryZone.max should define the actual visible
+  execution zone around that resistance.
+- Do NOT place the SELL Entry materially below the 15M resistance
+  unless the chart clearly shows a valid bearish retest there.
+- Do NOT chase price after it has already moved substantially away
+  from the resistance zone.
+
+2. STOP LOSS
+- The SELL Stop Loss must be above the 1H Resistance when a valid 1H
+  resistance is available.
+- Leave enough room above the 1H resistance for a normal liquidity
+  sweep/wick.
+- The SL must remain above Entry.
+- Do NOT place the SL immediately above the 15M resistance if the 1H
+  resistance is materially higher, unless the chart clearly proves that
+  the 15M level itself is the structural invalidation.
+
+3. TAKE PROFIT 1
+- TP1 should normally be the nearest meaningful 15M Support below Entry.
+- Use the exact price from multiTimeframeSupport.support15M.price.
+- TP1 rationale MUST explicitly say "15M support".
+- Do NOT invent a separate TP1 price when a valid 15M support exists.
+
+4. TAKE PROFIT 2
+- TP2 should normally be the Combined Major Support below TP1.
+- Use the exact price from multiTimeframeSupport.combinedMajorSupport.price.
+- TP2 rationale MUST explicitly say "Combined Major Support".
+- TP2 must be below TP1.
+
+Therefore the preferred SELL structure is:
+
+SELL Entry → near 15M Resistance
+SL → above 1H Resistance
+TP1 → 15M Support
+TP2 → Combined Major Support
+
+
+------------------------------------------------------------
+BUY SETUP
+------------------------------------------------------------
+
+When the final signal is BUY:
+
+1. ENTRY
+- The preferred BUY Entry must be near the identified 15M Support.
+- Prefer a support bounce, sweep-and-reclaim, or bullish confirmation
+  at the 15M support area.
+- entryZone.min and entryZone.max should define the actual visible
+  execution zone around that support.
+- Do NOT place the BUY Entry materially above the 15M support unless
+  the chart clearly shows a valid bullish retest there.
+- Do NOT chase price after it has already moved substantially away
+  from the support zone.
+
+2. STOP LOSS
+- The BUY Stop Loss must be below the 1H Support when a valid 1H
+  support is available.
+- Leave enough room below the 1H support for a normal liquidity
+  sweep/wick.
+- The SL must remain below Entry.
+- Do NOT place the SL immediately below the 15M support if the 1H
+  support is materially lower, unless the chart clearly proves that
+  the 15M level itself is the structural invalidation.
+
+3. TAKE PROFIT 1
+- TP1 should normally be the nearest meaningful 15M Resistance above
+  Entry.
+- Use the exact price from multiTimeframeSupport.resistance15M.price.
+- TP1 rationale MUST explicitly say "15M resistance".
+- Do NOT invent a separate TP1 price when a valid 15M resistance exists.
+
+4. TAKE PROFIT 2
+- TP2 should normally be the Combined Major Resistance above TP1.
+- Use the exact price from multiTimeframeSupport.combinedMajorResistance.price.
+- TP2 rationale MUST explicitly say "Combined Major Resistance".
+- TP2 must be above TP1.
+
+Therefore the preferred BUY structure is:
+
+BUY Entry → near 15M Support
+SL → below 1H Support
+TP1 → 15M Resistance
+TP2 → Combined Major Resistance
+
+
+------------------------------------------------------------
+GENERAL EXECUTION RULES
+------------------------------------------------------------
+
+- All Entry, SL and TP levels must come from visible chart structure.
+- Never use fixed hard-coded prices.
+- Never use arbitrary percentage-based SL or TP.
+- The exact numerical values must be derived from the actual chart.
+- If the required timeframe level is unavailable or unreadable, use the
+  next strongest clearly visible structural level and explain why.
+- The final setup must maintain the mandatory BUY/SELL mathematical
+  structure.
+- The setup should prioritize a high-quality entry near a key
+  timeframe level rather than entering at the current market price.
+- Risk/reward must be calculated from the final Entry, SL and TP1.
 ============================================================
 STOP LOSS
 ============================================================
