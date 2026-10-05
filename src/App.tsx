@@ -424,7 +424,7 @@ try {
 
       range:
         rawData.entryZone?.range ||
-        (rawData.entry ? ${rawData.entry} : ''),
+        (rawData.entry ? `${rawData.entry}` : ''),
 
       type: rawData.entryZone?.type || 'MARKET',
       note: rawData.entryZone?.note || '',
