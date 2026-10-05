@@ -517,8 +517,8 @@ try {
     supportLevels: Array.isArray(rawData.supportLevels)
       ? rawData.supportLevels
           .map((s: any, idx: number) => ({
-            level: s.level || S${idx + 1},
-            label: s.label || s.level || S${idx + 1},
+            level: s.level || `S${idx + 1}`,
+            label: s.label || s.level || `S${idx + 1}`,
             price: Number(s.price ?? s ?? 0),
             strength: s.strength || 'Strong',
             note: s.note || '',
