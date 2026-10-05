@@ -439,8 +439,7 @@ combinedMajorResistance: {
   price: Number(rawData.multiTimeframeSupport?.combinedMajorResistance?.price) || null,
   strength: rawData.multiTimeframeSupport?.combinedMajorResistance?.strength || 'Strong',
   rationale: rawData.multiTimeframeSupport?.combinedMajorResistance?.rationale || '',
-},
-                : undefined,
+};
         resistanceLevels: Array.isArray(rawData.resistanceLevels)
           ? rawData.resistanceLevels
               .map((r: any, idx: number) => ({
