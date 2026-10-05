@@ -82,21 +82,11 @@ console.log('[PRO CARD RESISTANCE DEBUG]', {
       : `$${num.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 6 })}`;
   };
   const mtfSupport = analysis.multiTimeframeSupport;
-  const mtfSupport = analysis.multiTimeframeSupport;
 
-const resistance15M =
-  mtfSupport?.resistance15M ?? (analysis as any).resistance15M;
-
-const resistance1H =
-  mtfSupport?.resistance1H ?? (analysis as any).resistance1H;
-
-const resistance4H =
-  mtfSupport?.resistance4H ?? (analysis as any).resistance4H;
-
-const combinedMajorResistance =
-  mtfSupport?.combinedMajorResistance ??
-  (analysis as any).combinedMajorResistance;
-
+const resistance15M = mtfSupport?.resistance15M;
+const resistance1H = mtfSupport?.resistance1H;
+const resistance4H = mtfSupport?.resistance4H;
+const combinedMajorResistance = mtfSupport?.combinedMajorResistance;
   const resistance15M = mtfSupport?.resistance15M;
   const resistance1H = mtfSupport?.resistance1H;
   const resistance4H = mtfSupport?.resistance4H;
