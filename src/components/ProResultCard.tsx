@@ -435,13 +435,13 @@ console.log('[PRO CARD RESISTANCE DEBUG]', {
           <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
   {[
     ['15M Support', analysis.multiTimeframeSupport.support15M],
-    ['15M Resistance', analysis.multiTimeframeSupport.resistance15M],
+    ['15M Resistance',resistance15M],
     ['1H Support', analysis.multiTimeframeSupport.support1H],
-    ['1H Resistance', analysis.multiTimeframeSupport.resistance1H],
+    ['1H Resistance', resistance1H],
     ['4H Support', analysis.multiTimeframeSupport.support4H],
-    ['4H Resistance', analysis.multiTimeframeSupport.resistance4H],
+    ['4H Resistance', resistance4H],
     ['Combined Major Support', analysis.multiTimeframeSupport.combinedMajorSupport],
-    ['Combined Major Resistance', analysis.multiTimeframeSupport.combinedMajorResistance],
+    ['Combined Major Resistance', combinedMajorResistance],
   ].map(([label, level]: [string, any]) => (
     <div
       key={label}
