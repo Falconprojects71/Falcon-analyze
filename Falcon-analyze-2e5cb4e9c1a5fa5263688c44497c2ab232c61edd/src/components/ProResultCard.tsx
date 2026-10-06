@@ -299,18 +299,10 @@ const tf3Name =
       </div>
 
       {/* Essential Trade Levels Grid */}
-      <div className="relative z-10 grid grid-cols-3 gap-2.5 sm:gap-3 mb-4">
+      <div className="relative z-10 grid grid-cols-6 gap-2.5 sm:gap-3 mb-4">
 
-        {/* SELL / BUY Signal - Large */}
-        <div
-          className={`col-span-2 ${
-            signalType === 'SELL'
-              ? 'bg-rose-950/30 border-rose-500/30 hover:border-rose-500/50'
-              : signalType === 'BUY'
-                ? 'bg-emerald-950/30 border-emerald-500/30 hover:border-emerald-500/50'
-                : 'bg-slate-950/80 border-slate-700 hover:border-slate-600'
-          } border rounded-xl p-3 flex flex-col justify-between space-y-1 transition-colors`}
-        >
+        {/* SELL / BUY Signal */}
+        <div className="col-span-3 bg-slate-950/80 border border-slate-800 rounded-xl p-3 flex flex-col justify-between space-y-1 hover:border-slate-700 transition-colors">
           <div className="flex items-center gap-1.5 text-[11px] font-mono font-semibold text-slate-400 uppercase tracking-wider">
             <SignalIcon
               className={`w-3.5 h-3.5 ${
@@ -338,12 +330,11 @@ const tf3Name =
         </div>
 
         {/* Entry Zone */}
-        <div className="bg-slate-950/80 border border-cyan-500/25 rounded-xl p-3 flex flex-col justify-between space-y-1 hover:border-cyan-500/50 transition-colors">
+        <div className="col-span-3 bg-slate-950/80 border border-cyan-500/25 rounded-xl p-3 flex flex-col justify-between space-y-1 hover:border-cyan-500/50 transition-colors">
           <div className="flex items-center gap-1.5 text-[11px] font-mono font-semibold text-slate-400 uppercase tracking-wider">
             <Target className="w-3.5 h-3.5 text-cyan-400" />
-            <span>Entry</span>
+            <span>Entry Zone</span>
           </div>
-
           <div
             className="text-sm sm:text-base font-mono font-bold text-cyan-300 truncate"
             title={entryDisplay}
@@ -353,12 +344,11 @@ const tf3Name =
         </div>
 
         {/* Stop Loss */}
-        <div className="bg-slate-950/80 border border-rose-500/25 rounded-xl p-3 flex flex-col justify-between space-y-1 hover:border-rose-500/50 transition-colors">
+        <div className="col-span-2 bg-slate-950/80 border border-rose-500/25 rounded-xl p-3 flex flex-col justify-between space-y-1 hover:border-rose-500/50 transition-colors">
           <div className="flex items-center gap-1.5 text-[11px] font-mono font-semibold text-slate-400 uppercase tracking-wider">
             <ShieldAlert className="w-3.5 h-3.5 text-rose-400" />
-            <span>SL</span>
+            <span>Stop Loss (SL)</span>
           </div>
-
           <div
             className="text-sm sm:text-base font-mono font-bold text-rose-400 truncate"
             title={slDisplay}
@@ -368,12 +358,11 @@ const tf3Name =
         </div>
 
         {/* Take Profit 1 */}
-        <div className="bg-slate-950/80 border border-emerald-500/25 rounded-xl p-3 flex flex-col justify-between space-y-1 hover:border-emerald-500/50 transition-colors">
+        <div className="col-span-2 bg-slate-950/80 border border-emerald-500/25 rounded-xl p-3 flex flex-col justify-between space-y-1 hover:border-emerald-500/50 transition-colors">
           <div className="flex items-center gap-1.5 text-[11px] font-mono font-semibold text-slate-400 uppercase tracking-wider">
             <TrendingUp className="w-3.5 h-3.5 text-emerald-400" />
             <span>TP1</span>
           </div>
-
           <div
             className="text-sm sm:text-base font-mono font-bold text-emerald-400 truncate"
             title={tp1Display}
@@ -383,12 +372,11 @@ const tf3Name =
         </div>
 
         {/* Take Profit 2 */}
-        <div className="bg-slate-950/80 border border-emerald-500/25 rounded-xl p-3 flex flex-col justify-between space-y-1 hover:border-emerald-500/50 transition-colors">
+        <div className="col-span-2 bg-slate-950/80 border border-emerald-500/25 rounded-xl p-3 flex flex-col justify-between space-y-1 hover:border-emerald-500/50 transition-colors">
           <div className="flex items-center gap-1.5 text-[11px] font-mono font-semibold text-slate-400 uppercase tracking-wider">
             <TrendingUp className="w-3.5 h-3.5 text-emerald-300" />
             <span>TP2</span>
           </div>
-
           <div
             className="text-sm sm:text-base font-mono font-bold text-emerald-300 truncate"
             title={tp2Display}
