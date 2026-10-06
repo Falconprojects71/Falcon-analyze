@@ -1196,97 +1196,104 @@ function normalizeAnalysis(
   }
   // Normalize Multi-Timeframe Support
   if (result.multiTimeframeSupport) {
-    const mts = result.multiTimeframeSupport;
+  const mts = result.multiTimeframeSupport;
 
-    normalized.multiTimeframeSupport = {
-      support15M: mts.support15M
-        ? {
-            ...mts.support15M,
-            price: mts.support15M.price === null
-  ? null
-  : parseNumericValue(mts.support15M.price) ?? undefined,
-            strength: mts.support15M.strength || 'Unavailable',
-            rationale: mts.support15M.rationale || '',
-          }
-        : undefined,
+  normalized.multiTimeframeSupport = {
+    support1: mts.support1
+      ? {
+          ...mts.support1,
+          timeframe: mts.support1.timeframe || '',
+          price: mts.support1.price === null
+            ? null
+            : parseNumericValue(mts.support1.price) ?? undefined,
+          strength: mts.support1.strength || 'Unavailable',
+          rationale: mts.support1.rationale || '',
+        }
+      : undefined,
 
-      support1H: mts.support1H
-        ? {
-            ...mts.support1H,
-            price: mts.support1H.price === null
-  ? null
-  : parseNumericValue(mts.support1H.price) ?? undefined,
-            strength: mts.support1H.strength || 'Unavailable',
-            rationale: mts.support1H.rationale || '',
-          }
-        : undefined,
+    resistance1: mts.resistance1
+      ? {
+          ...mts.resistance1,
+          timeframe: mts.resistance1.timeframe || '',
+          price: mts.resistance1.price === null
+            ? null
+            : parseNumericValue(mts.resistance1.price) ?? undefined,
+          strength: mts.resistance1.strength || 'Unavailable',
+          rationale: mts.resistance1.rationale || '',
+        }
+      : undefined,
 
-      support4H: mts.support4H
-        ? {
-            ...mts.support4H,
-           price: mts.support4H.price === null
-  ? null
-  : parseNumericValue(mts.support4H.price) ?? undefined,
-            strength: mts.support4H.strength || 'Unavailable',
-            rationale: mts.support4H.rationale || '',
-          }
-        : undefined,
+    support2: mts.support2
+      ? {
+          ...mts.support2,
+          timeframe: mts.support2.timeframe || '',
+          price: mts.support2.price === null
+            ? null
+            : parseNumericValue(mts.support2.price) ?? undefined,
+          strength: mts.support2.strength || 'Unavailable',
+          rationale: mts.support2.rationale || '',
+        }
+      : undefined,
 
-      combinedMajorSupport: mts.combinedMajorSupport
-        ? {
-            ...mts.combinedMajorSupport,
-            price: mts.combinedMajorSupport.price === null
-  ? null
-  : parseNumericValue(mts.combinedMajorSupport.price) ?? undefined,
-            strength: mts.combinedMajorSupport.strength || 'Strong',
-            rationale: mts.combinedMajorSupport.rationale || '',
-          }
-        : undefined,
-      resistance15M: mts.resistance15M
-        ? {
-            ...mts.resistance15M,
-            price: mts.resistance15M.price === null
-              ? null
-              : parseNumericValue(mts.resistance15M.price) ?? undefined,
-            strength: mts.resistance15M.strength || 'Unavailable',
-            rationale: mts.resistance15M.rationale || '',
-          }
-        : undefined,
+    resistance2: mts.resistance2
+      ? {
+          ...mts.resistance2,
+          timeframe: mts.resistance2.timeframe || '',
+          price: mts.resistance2.price === null
+            ? null
+            : parseNumericValue(mts.resistance2.price) ?? undefined,
+          strength: mts.resistance2.strength || 'Unavailable',
+          rationale: mts.resistance2.rationale || '',
+        }
+      : undefined,
 
-      resistance1H: mts.resistance1H
-        ? {
-            ...mts.resistance1H,
-            price: mts.resistance1H.price === null
-              ? null
-              : parseNumericValue(mts.resistance1H.price) ?? undefined,
-            strength: mts.resistance1H.strength || 'Unavailable',
-            rationale: mts.resistance1H.rationale || '',
-          }
-        : undefined,
+    support3: mts.support3
+      ? {
+          ...mts.support3,
+          timeframe: mts.support3.timeframe || '',
+          price: mts.support3.price === null
+            ? null
+            : parseNumericValue(mts.support3.price) ?? undefined,
+          strength: mts.support3.strength || 'Unavailable',
+          rationale: mts.support3.rationale || '',
+        }
+      : undefined,
 
-      resistance4H: mts.resistance4H
-        ? {
-            ...mts.resistance4H,
-            price: mts.resistance4H.price === null
-              ? null
-              : parseNumericValue(mts.resistance4H.price) ?? undefined,
-            strength: mts.resistance4H.strength || 'Unavailable',
-            rationale: mts.resistance4H.rationale || '',
-          }
-        : undefined,
+    resistance3: mts.resistance3
+      ? {
+          ...mts.resistance3,
+          timeframe: mts.resistance3.timeframe || '',
+          price: mts.resistance3.price === null
+            ? null
+            : parseNumericValue(mts.resistance3.price) ?? undefined,
+          strength: mts.resistance3.strength || 'Unavailable',
+          rationale: mts.resistance3.rationale || '',
+        }
+      : undefined,
 
-      combinedMajorResistance: mts.combinedMajorResistance
-        ? {
-            ...mts.combinedMajorResistance,
-            price: mts.combinedMajorResistance.price === null
-              ? null
-              : parseNumericValue(mts.combinedMajorResistance.price) ?? undefined,
-            strength: mts.combinedMajorResistance.strength || 'Strong',
-            rationale: mts.combinedMajorResistance.rationale || '',
-          }
-        : undefined,
-    };
-  }
+    combinedMajorSupport: mts.combinedMajorSupport
+      ? {
+          ...mts.combinedMajorSupport,
+          price: mts.combinedMajorSupport.price === null
+            ? null
+            : parseNumericValue(mts.combinedMajorSupport.price) ?? undefined,
+          strength: mts.combinedMajorSupport.strength || 'Strong',
+          rationale: mts.combinedMajorSupport.rationale || '',
+        }
+      : undefined,
+
+    combinedMajorResistance: mts.combinedMajorResistance
+      ? {
+          ...mts.combinedMajorResistance,
+          price: mts.combinedMajorResistance.price === null
+            ? null
+            : parseNumericValue(mts.combinedMajorResistance.price) ?? undefined,
+          strength: mts.combinedMajorResistance.strength || 'Strong',
+          rationale: mts.combinedMajorResistance.rationale || '',
+        }
+      : undefined,
+  };
+}
  
 // Normalize supportLevels
   if (Array.isArray(result.supportLevels)) {
