@@ -1163,37 +1163,16 @@ function normalizeAnalysis(
       })
       .filter((s): s is { level: string; price: number; strength: string } => s !== null);
   }
-  console.log('[RESISTANCE NORMALIZE DEBUG]', {
-  topLevelResistance15M: result.resistance15M,
-  topLevelResistance1H: result.resistance1H,
-  topLevelResistance4H: result.resistance4H,
-  topLevelCombinedMajorResistance: result.combinedMajorResistance,
-  nestedResistance15M: result.multiTimeframeSupport?.resistance15M,
-  nestedResistance1H: result.multiTimeframeSupport?.resistance1H,
-  nestedResistance4H: result.multiTimeframeSupport?.resistance4H,
-  nestedCombinedMajorResistance: result.multiTimeframeSupport?.combinedMajorResistance,
+ console.log('[MTF NORMALIZE DEBUG]', {
+  support1: result.multiTimeframeSupport?.support1,
+  support2: result.multiTimeframeSupport?.support2,
+  support3: result.multiTimeframeSupport?.support3,
+  resistance1: result.multiTimeframeSupport?.resistance1,
+  resistance2: result.multiTimeframeSupport?.resistance2,
+  resistance3: result.multiTimeframeSupport?.resistance3,
+  combinedMajorSupport: result.multiTimeframeSupport?.combinedMajorSupport,
+  combinedMajorResistance: result.multiTimeframeSupport?.combinedMajorResistance,
 });
-  // Move timeframe resistance fields into multiTimeframeSupport
-  if (
-    result.resistance15M ||
-    result.resistance1H ||
-    result.resistance4H ||
-    result.combinedMajorResistance
-  ) {
-    result.multiTimeframeSupport = result.multiTimeframeSupport || {};
-
-    result.multiTimeframeSupport.resistance15M =
-      result.resistance15M;
-
-    result.multiTimeframeSupport.resistance1H =
-      result.resistance1H;
-
-    result.multiTimeframeSupport.resistance4H =
-      result.resistance4H;
-
-    result.multiTimeframeSupport.combinedMajorResistance =
-      result.combinedMajorResistance;
-  }
   // Normalize Multi-Timeframe Support
   if (result.multiTimeframeSupport) {
   const mts = result.multiTimeframeSupport;
