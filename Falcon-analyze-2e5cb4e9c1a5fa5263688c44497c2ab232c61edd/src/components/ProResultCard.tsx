@@ -356,6 +356,50 @@ const tf3Name =
           </div>
         </div>
       </div>
+      {/* MULTI-TIMEFRAME SUPPORT & RESISTANCE */}
+      <div className="relative z-10 bg-slate-950/70 border border-slate-800 rounded-xl p-3.5 mb-3.5">
+        <div className="flex items-center gap-2 pb-2 border-b border-slate-800/80 text-xs font-mono font-bold uppercase tracking-wider text-slate-300">
+          <Layers className="w-3.5 h-3.5 text-cyan-400" />
+          <span>SUPPORT & RESISTANCE</span>
+        </div>
+
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 mt-2.5">
+          {[
+            ['Support 1', support1],
+            ['Resistance 1', resistance1],
+            ['Support 2', support2],
+            ['Resistance 2', resistance2],
+            ['Support 3', support3],
+            ['Resistance 3', resistance3],
+            ['Combined Major Support', combinedMajorSupport],
+            ['Combined Major Resistance', combinedMajorResistance],
+          ].map(([label, level]: [string, any]) => {
+            const price =
+              typeof level?.price === 'number' && level.price > 0
+                ? formatPrice(level.price)
+                : 'Unavailable';
+
+            return (
+              <div
+                key={label}
+                className="p-2.5 rounded-lg bg-slate-900/80 border border-slate-800"
+              >
+                <div className="text-[10px] font-mono font-semibold text-slate-400 uppercase tracking-wide">
+                  {label}
+                </div>
+
+                <div className="mt-1 text-sm font-mono font-bold text-cyan-300 truncate">
+                  {price}
+                </div>
+
+                <div className="mt-1 text-[10px] font-mono text-slate-500">
+                  {level?.strength || 'Unavailable'}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
 
       {/* 3-CHART INSIGHTS SECTION */}
       <div className="relative z-10 bg-slate-950/70 border border-slate-800 rounded-xl p-3.5 mb-3.5 space-y-2.5">
