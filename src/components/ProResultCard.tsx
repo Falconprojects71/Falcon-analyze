@@ -434,15 +434,15 @@ const combinedMajorResistance = mtfSupport?.combinedMajorResistance;
 
           <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
   {[
-    ['15M Support', analysis.multiTimeframeSupport.support15M],
-    ['15M Resistance',resistance15M],
-    ['1H Support', analysis.multiTimeframeSupport.support1H],
-    ['1H Resistance', resistance1H],
-    ['4H Support', analysis.multiTimeframeSupport.support4H],
-    ['4H Resistance', resistance4H],
-    ['Combined Major Support', analysis.multiTimeframeSupport.combinedMajorSupport],
-    ['Combined Major Resistance', combinedMajorResistance],
-  ].map(([label, level]: [string, any]) => (
+  ['Support 1', analysis.multiTimeframeSupport.support15M],
+  ['Resistance 1', resistance15M],
+  ['Support 2', analysis.multiTimeframeSupport.support1H],
+  ['Resistance 2', resistance1H],
+  ['Support 3', analysis.multiTimeframeSupport.support4H],
+  ['Resistance 3', resistance4H],
+  ['Combined Major Support', analysis.multiTimeframeSupport.combinedMajorSupport],
+  ['Combined Major Resistance', combinedMajorResistance],
+].map(([label, level]: [string, any]) => (
     <div
       key={label}
       className="rounded-lg bg-slate-900/80 border border-slate-800 p-2.5"
