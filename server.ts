@@ -2106,107 +2106,53 @@ Use this exact general structure:
     }
   ],
   "multiTimeframeSupport": {
-  "support15M": {
+  "support1": {
+    "timeframe": "string",
     "price": 0,
     "strength": "Strong | Moderate | Weak | Unavailable",
-    "rationale": "string explaining the visible 15M support structure"
+    "rationale": "string explaining the visible support structure on Chart 1"
   },
-  "resistance15M": {
+  "resistance1": {
+    "timeframe": "string",
     "price": 0,
     "strength": "Strong | Moderate | Weak | Unavailable",
-    "rationale": "string explaining the visible 15M resistance structure"
+    "rationale": "string explaining the visible resistance structure on Chart 1"
   },
-  "support1H": {
+  "support2": {
+    "timeframe": "string",
     "price": 0,
     "strength": "Strong | Moderate | Weak | Unavailable",
-    "rationale": "string explaining the visible 1H support structure"
+    "rationale": "string explaining the visible support structure on Chart 2"
   },
-  "resistance1H": {
+  "resistance2": {
+    "timeframe": "string",
     "price": 0,
     "strength": "Strong | Moderate | Weak | Unavailable",
-    "rationale": "string explaining the visible 1H resistance structure"
+    "rationale": "string explaining the visible resistance structure on Chart 2"
   },
-  "support4H": {
+  "support3": {
+    "timeframe": "string",
     "price": 0,
     "strength": "Strong | Moderate | Weak | Unavailable",
-    "rationale": "string explaining the visible 4H support structure"
+    "rationale": "string explaining the visible support structure on Chart 3"
   },
-  "resistance4H": {
+  "resistance3": {
+    "timeframe": "string",
     "price": 0,
     "strength": "Strong | Moderate | Weak | Unavailable",
-    "rationale": "string explaining the visible 4H resistance structure"
+    "rationale": "string explaining the visible resistance structure on Chart 3"
   },
   "combinedMajorSupport": {
     "price": 0,
-    "strength": "Strong | Moderate | Weak",
+    "strength": "Strong | Moderate | Weak | Unavailable",
     "rationale": "string explaining why this is the combined major support"
   },
   "combinedMajorResistance": {
     "price": 0,
-    "strength": "Strong | Moderate | Weak",
+    "strength": "Strong | Moderate | Weak | Unavailable",
     "rationale": "string explaining why this is the combined major resistance"
   }
 },
-  "resistanceLevels": [
-    {
-      "level": "R1",
-      "price": 0,
-      "strength": "Strong | Moderate | Weak"
-    }
-  ],
-
-  "marketStructure": {
-    "type": "string",
-    "description": "string"
-  },
-
-  "orderFlowContext": {
-    "fairValueGaps": "string",
-    "liquidityPools": "string",
-    "volumeAnalysis": "string"
-  },
-
-  "technicalIndicators": [
-    {
-      "name": "string",
-      "status": "string",
-      "detail": "string"
-    }
-  ],
-
-  "candlestickPatterns": [],
-
-  "multiTimeframeAnalysis": {
-    "chart1": {
-      "timeframe": "4H | Daily | Higher TF",
-      "role": "Macro Trend & Dominant Bias",
-      "observations": "string detailing structure observed on chart 1",
-      "trend": "Bullish | Bearish | Range"
-    },
-    "chart2": {
-      "timeframe": "1H | Intermediate TF",
-      "role": "Intermediate Structure & Confluence",
-      "observations": "string detailing structure observed on chart 2",
-      "keyLevels": "string"
-    },
-    "chart3": {
-      "timeframe": "15M | Lower TF",
-      "role": "Precision Entry & Invalidation",
-      "observations": "string detailing structure observed on chart 3",
-      "setupTrigger": "string"
-    },
-    "confluenceSummary": "string explaining how the 3 timeframes align together into one coherent setup",
-    "conflictResolution": "string explaining how any conflict between timeframes was resolved"
-  },
-
-  "tradePlanExecution": {
-    "stepByStep": [],
-    "invalidationCriteria": "string",
-    "riskManagementTips": "string"
-  },
-
-  "detailedExplanation": "string"
-}
 ============================================================
 FINAL SUPPORT REPORTING — MANDATORY
 ============================================================
