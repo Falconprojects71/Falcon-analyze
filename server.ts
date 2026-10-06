@@ -1817,16 +1817,91 @@ identified across the uploaded charts.
 9. MULTIPLE SCREENSHOTS (PRO MULTI-TIMEFRAME ANALYSIS).
 
 If multiple screenshots are provided (${params.imageCount || 1} image(s) provided):
-- You MUST thoroughly scan and analyze EVERY SINGLE SCREENSHOT in sequence (Chart 1, Chart 2, Chart 3).
-- Understand each chart's timeframe and role in the top-down multi-timeframe analysis:
-  * Higher Timeframe (e.g. 4H / Daily / 1H): Dictates Macro Trend, Dominant Market Bias, Major Structural Swing Highs/Lows, and Key Daily/Weekly Levels.
-  * Intermediate Timeframe (e.g. 1H / 30M / 15M): Identifies Intermediate Market Structure, Key Confluence Areas, Order Blocks, Liquidity Sweeps, and Supply/Demand zones.
-  * Lower Timeframe (e.g. 15M / 5M / 1M): Pinpoints the Precision Entry Trigger, Local Reversal or Breakout Confirmation, and Structural Invalidation (Stop Loss).
-- If there is a conflict between timeframes (e.g. Higher TF is Bullish but Lower TF is in a minor pullback):
-  * Synthesize them intelligently: the higher timeframe trend dominates overall bias, while the lower timeframe gives the optimal pullback entry and tight invalidation.
-- You must synthesize all charts into ONE UNIFIED, COHESIVE TRADE PLAN.
-- In the "multiTimeframeAnalysis" JSON field, provide clear observations for each chart (chart1, chart2, chart3) along with the confluence summary and how any conflict was resolved.
 
+- You MUST thoroughly scan and analyze EVERY SINGLE SCREENSHOT in sequence:
+  Chart 1, Chart 2, Chart 3.
+
+- Determine the ACTUAL timeframe of each uploaded chart from the
+  visible chart information whenever possible.
+
+- NEVER assume fixed timeframes such as 15M, 1H, 4H, Daily, 5M, 30M,
+  or any other predefined timeframe.
+
+- Preserve each chart's actual timeframe and identity throughout the
+  analysis.
+
+- Understand each chart's role based on its ACTUAL timeframe and
+  visible market structure:
+
+  * Chart 1:
+    Analyze its actual timeframe for the market structure, trend,
+    important swing points, and major visible levels.
+
+  * Chart 2:
+    Analyze its actual timeframe for intermediate structure,
+    support/resistance, confluence, liquidity behavior, and key zones.
+
+  * Chart 3:
+    Analyze its actual timeframe for entry setup, local price action,
+    confirmation, and structural invalidation.
+
+- The roles above are functional descriptions only.
+  Do NOT assign a fixed timeframe to any role.
+
+- If the uploaded charts have different timeframes, compare them
+  according to their actual timeframe hierarchy.
+
+- If there is a conflict between timeframes:
+  * Determine which chart represents the broader/higher timeframe
+    structure based on the actual uploaded timeframes.
+  * Use the broader structure to determine the dominant market context.
+  * Use the more precise/lower timeframe structure for entry timing,
+    confirmation, and invalidation when appropriate.
+  * Do NOT automatically treat Chart 1 as the highest timeframe or
+    Chart 3 as the lowest timeframe unless the actual uploaded
+    timeframes confirm this.
+
+- If the uploaded charts are not in conventional higher-to-lower
+  timeframe order, analyze them according to their actual timeframes
+  rather than their upload order.
+
+- You MUST synthesize all available charts into ONE UNIFIED,
+  COHESIVE TRADE PLAN.
+
+- In the "multiTimeframeAnalysis" JSON field, provide clear observations
+  for each uploaded chart:
+
+  * chart1:
+    - actual timeframe
+    - role based on the actual chart
+    - observations
+    - trend when applicable
+
+  * chart2:
+    - actual timeframe
+    - role based on the actual chart
+    - observations
+    - key levels when applicable
+
+  * chart3:
+    - actual timeframe
+    - role based on the actual chart
+    - observations
+    - setup trigger when applicable
+
+- Also provide:
+  * confluenceSummary:
+    Explain where the uploaded charts agree or show confluence.
+
+  * conflictResolution:
+    Explain how any disagreement between the actual chart
+    timeframes was resolved.
+
+- NEVER invent a timeframe that is not visible or reliably identifiable
+  from the uploaded chart.
+
+- If a chart's timeframe cannot be reliably identified, use
+  "Unknown" rather than guessing.
 10. TIMEFRAME.
 
 Respect the user's selected timeframe.
