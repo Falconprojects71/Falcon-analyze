@@ -1559,74 +1559,260 @@ TP2, if supplied, must be below TP1.
 
 TP3, if supplied, must be below TP2.
 
-8. SUPPORT AND RESISTANCE — MULTI-TIMEFRAME REQUIREMENT.
+8. SUPPORT AND RESISTANCE — DYNAMIC MULTI-TIMEFRAME REQUIREMENT.
 
-Only report support and resistance levels that are actually supported by visible chart structure.
+Only report support and resistance levels that are actually supported
+by visible chart structure.
 
-When multiple screenshots are provided, you MUST identify support separately for EACH available timeframe.
+When multiple screenshots are provided, analyze EACH uploaded chart
+independently.
 
-For a 3-chart Pro analysis:
+The three uploaded charts are identified by their upload order:
 
-15M SUPPORT:
-- Identify the most relevant visible 15M support level.
-- Prefer recent swing low, demand zone, successful retest, liquidity sweep/reclaim, or repeated rejection.
-- Do NOT use a 1H or 4H level as the 15M support.
-- The 15M support price MUST come from the visible 15M chart.
+- Chart 1 = first uploaded screenshot
+- Chart 2 = second uploaded screenshot
+- Chart 3 = third uploaded screenshot
 
-1H SUPPORT:
-- Identify the most relevant visible 1H support level.
-- Use 1H swing structure, demand, previous reaction, retest, or clearly visible support.
-- The 1H support price MUST come from the visible 1H chart.
+NEVER assume that the three charts are 15M, 1H and 4H.
 
-4H SUPPORT:
-- Identify the most relevant visible 4H support level.
-- Use major 4H swing structure, major demand, previous reaction, or clearly visible structural support.
-- The 4H support price MUST come from the visible 4H chart.
+The actual timeframe must be read from the chart when visible and must
+be preserved exactly.
 
-COMBINED MAJOR SUPPORT:
-- After identifying the individual timeframe supports, determine the strongest major support relevant to the unified trade plan.
-- Prefer genuine confluence where 15M, 1H and/or 4H support areas overlap or are closely aligned.
-- If the timeframes have materially different support levels, choose the structurally most important level for the overall setup and explain why.
-- Do NOT pretend that different levels are the same level.
-- The combined major support MUST still be supported by visible chart evidence.
+------------------------------------------------------------
+CHART 1 — SUPPORT / RESISTANCE
+------------------------------------------------------------
 
-CRITICAL:
-- Never copy the 1H/4H support into the 15M support field.
-- Never invent a 15M support if a 15M screenshot is not provided or its price scale is unreadable.
-- If a timeframe is unavailable, use:
-  "price": null,
-  "strength": "Unavailable",
-  "rationale": "No usable chart data for this timeframe."
-- Every available timeframe must be analyzed independently before creating the combined major support.
-When multiple screenshots are provided, you MUST identify support separately for EACH available timeframe.
+Identify the most relevant visible support and resistance from Chart 1.
 
-15M SUPPORT:
-- Identify the most relevant visible 15M support level.
-- Use recent 15M swing lows, demand zones, successful retests, liquidity sweeps/reclaims, or repeated price rejection.
-- The 15M support MUST come from the visible 15M chart.
-- NEVER copy a 1H or 4H support level into the 15M support field.
+Store them as:
 
-1H SUPPORT:
-- Identify the most relevant visible 1H support level.
-- Use 1H swing structure, demand zones, previous reactions, retests, or clearly visible structural support.
-- The 1H support MUST come from the visible 1H chart.
+- multiTimeframeSupport.support1
+- multiTimeframeSupport.resistance1
 
-4H SUPPORT:
-- Identify the most relevant visible 4H support level.
-- Use major 4H swing structure, major demand zones, previous reactions, or clearly visible structural support.
-- The 4H support MUST come from the visible 4H chart.
+The "timeframe" field MUST contain the actual timeframe of Chart 1.
 
-COMBINED MAJOR SUPPORT:
-- After independently identifying 15M, 1H and 4H support, determine the strongest support relevant to the unified trade plan.
-- Prefer genuine confluence where multiple timeframes identify the same or closely overlapping support zone.
-- If the levels differ materially, select the structurally most important level and explain why.
-- Do NOT pretend different support levels are the same level.
+Example:
 
-CRITICAL:
-- NEVER summarize support only as "1H/4H support" when a usable 15M chart is available.
-- The 15M support MUST be explicitly analyzed.
-- If a timeframe is not provided or its price scale is unreadable, do NOT invent a price.
-- For an unavailable timeframe use price null and explain that the timeframe was unavailable.
+"support1": {
+  "timeframe": "5M",
+  "price": 4165,
+  "strength": "Strong",
+  "rationale": "Recent 5M swing low with repeated bullish rejection."
+}
+
+Do NOT assume Chart 1 is 15M, 1H, 4H, Daily, or any other fixed timeframe.
+
+Support 1 must come from Chart 1.
+
+Resistance 1 must come from Chart 1.
+
+------------------------------------------------------------
+CHART 2 — SUPPORT / RESISTANCE
+------------------------------------------------------------
+
+Identify the most relevant visible support and resistance from Chart 2.
+
+Store them as:
+
+- multiTimeframeSupport.support2
+- multiTimeframeSupport.resistance2
+
+The "timeframe" field MUST contain the actual timeframe of Chart 2.
+
+Support 2 must come from Chart 2.
+
+Resistance 2 must come from Chart 2.
+
+Do NOT copy Chart 1 levels into Chart 2 unless the same price level is
+independently visible and structurally valid on Chart 2.
+
+------------------------------------------------------------
+CHART 3 — SUPPORT / RESISTANCE
+------------------------------------------------------------
+
+Identify the most relevant visible support and resistance from Chart 3.
+
+Store them as:
+
+- multiTimeframeSupport.support3
+- multiTimeframeSupport.resistance3
+
+The "timeframe" field MUST contain the actual timeframe of Chart 3.
+
+Support 3 must come from Chart 3.
+
+Resistance 3 must come from Chart 3.
+
+Do NOT copy Chart 1 or Chart 2 levels into Chart 3 unless the same
+price level is independently visible and structurally valid on Chart 3.
+
+------------------------------------------------------------
+HOW TO IDENTIFY SUPPORT
+------------------------------------------------------------
+
+For each chart, prefer support based on visible:
+
+- recent swing lows
+- repeated price reactions
+- demand zones
+- successful retests
+- liquidity sweeps followed by reclaim
+- strong bullish rejection
+- previous structural support
+- clearly visible consolidation boundaries
+
+The support price MUST come from the visible price structure of that
+specific chart.
+
+Do NOT invent a precise price when the price scale is unreadable.
+
+------------------------------------------------------------
+HOW TO IDENTIFY RESISTANCE
+------------------------------------------------------------
+
+For each chart, prefer resistance based on visible:
+
+- recent swing highs
+- repeated price reactions
+- supply zones
+- failed breakouts
+- resistance retests
+- liquidity sweeps followed by rejection
+- strong bearish rejection
+- previous structural resistance
+- clearly visible consolidation boundaries
+
+The resistance price MUST come from the visible price structure of that
+specific chart.
+
+Do NOT invent a precise price when the price scale is unreadable.
+
+------------------------------------------------------------
+UNAVAILABLE CHART DATA
+------------------------------------------------------------
+
+If a chart is provided but its timeframe or price structure cannot be
+reliably read, do NOT fabricate a level.
+
+Use:
+
+"price": null,
+"strength": "Unavailable",
+"rationale": "No usable chart data for this level."
+
+If the timeframe can still be identified, preserve it in the
+"timeframe" field.
+
+If the timeframe itself cannot be identified, use:
+
+"timeframe": "Unknown"
+
+------------------------------------------------------------
+COMBINED MAJOR SUPPORT
+------------------------------------------------------------
+
+After independently analyzing Support 1, Support 2 and Support 3,
+determine the strongest major support for the unified trade plan.
+
+Store it as:
+
+multiTimeframeSupport.combinedMajorSupport
+
+Prefer genuine confluence where support areas from multiple charts
+overlap or are closely aligned.
+
+If the individual support levels are materially different:
+
+- Do NOT pretend they are the same level.
+- Select the structurally most important major support.
+- Explain why it is more important for the unified trade plan.
+
+The Combined Major Support MUST be supported by actual visible chart
+evidence.
+
+------------------------------------------------------------
+COMBINED MAJOR RESISTANCE
+------------------------------------------------------------
+
+After independently analyzing Resistance 1, Resistance 2 and
+Resistance 3, determine the strongest major resistance for the unified
+trade plan.
+
+Store it as:
+
+multiTimeframeSupport.combinedMajorResistance
+
+Prefer genuine confluence where resistance areas from multiple charts
+overlap or are closely aligned.
+
+If the individual resistance levels are materially different:
+
+- Do NOT pretend they are the same level.
+- Select the structurally most important major resistance.
+- Explain why it is more important for the unified trade plan.
+
+The Combined Major Resistance MUST be supported by actual visible chart
+evidence.
+
+------------------------------------------------------------
+CRITICAL RULES
+------------------------------------------------------------
+
+NEVER assume fixed timeframes such as:
+
+15M
+1H
+4H
+
+The uploaded charts may be ANY timeframes.
+
+For example, if the charts are:
+
+5M + 30M + 2H
+
+then report:
+
+Support 1 → 5M
+Support 2 → 30M
+Support 3 → 2H
+
+and:
+
+Resistance 1 → 5M
+Resistance 2 → 30M
+Resistance 3 → 2H
+
+If the charts are:
+
+1H + 4H + 1D
+
+then report:
+
+Support 1 → 1H
+Support 2 → 4H
+Support 3 → 1D
+
+and:
+
+Resistance 1 → 1H
+Resistance 2 → 4H
+Resistance 3 → 1D
+
+NEVER rename an actual timeframe.
+
+NEVER replace individual levels with combined labels such as:
+
+"15M/1H support"
+"1H/4H support"
+"15M/1H/4H support"
+
+Each chart's level must remain individually identified.
+
+The Combined Major Support and Combined Major Resistance are separate
+from Support 1/2/3 and Resistance 1/2/3.
+
+The combined levels must be derived from the actual visible levels
+identified across the uploaded charts.
 
 9. MULTIPLE SCREENSHOTS (PRO MULTI-TIMEFRAME ANALYSIS).
 
