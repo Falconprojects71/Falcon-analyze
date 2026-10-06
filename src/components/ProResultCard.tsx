@@ -440,15 +440,15 @@ const tf3Name = mtf?.chart3?.timeframe || support3?.timeframe || 'Unknown';
 
           <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
   {[
-  ['Support 1', support1],
-['Resistance 1', resistance1],
-['Support 2', support2],
-['Resistance 2', resistance2],
-['Support 3', support3],
-['Resistance 3', resistance3],
-['Combined Major Support', combinedMajorSupport],
-['Combined Major Resistance', combinedMajorResistance],
-].map(([label, level]: [string, any]) => (
+    ['Support 1', analysis.multiTimeframeSupport?.support1],
+    ['Resistance 1', analysis.multiTimeframeSupport?.resistance1],
+    ['Support 2', analysis.multiTimeframeSupport?.support2],
+    ['Resistance 2', analysis.multiTimeframeSupport?.resistance2],
+    ['Support 3', analysis.multiTimeframeSupport?.support3],
+    ['Resistance 3', analysis.multiTimeframeSupport?.resistance3],
+    ['Combined Major Support', analysis.multiTimeframeSupport?.combinedMajorSupport],
+    ['Combined Major Resistance', analysis.multiTimeframeSupport?.combinedMajorResistance],
+  ].map(([label, level]: [string, any]) => (
     <div
       key={label}
       className="rounded-lg bg-slate-900/80 border border-slate-800 p-2.5"
