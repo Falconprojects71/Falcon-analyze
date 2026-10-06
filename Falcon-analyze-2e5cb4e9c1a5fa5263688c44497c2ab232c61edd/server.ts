@@ -208,6 +208,48 @@ interface ChartAnalysis {
 
   candlestickPatterns?: string[];
 
+  "multiTimeframeSupport": {
+  "support1": {
+    "price": null,
+    "strength": "string",
+    "rationale": "string"
+  },
+  "resistance1": {
+    "price": null,
+    "strength": "string",
+    "rationale": "string"
+  },
+  "support2": {
+    "price": null,
+    "strength": "string",
+    "rationale": "string"
+  },
+  "resistance2": {
+    "price": null,
+    "strength": "string",
+    "rationale": "string"
+  },
+  "support3": {
+    "price": null,
+    "strength": "string",
+    "rationale": "string"
+  },
+  "resistance3": {
+    "price": null,
+    "strength": "string",
+    "rationale": "string"
+  },
+  "combinedMajorSupport": {
+    "price": null,
+    "strength": "string",
+    "rationale": "string"
+  },
+  "combinedMajorResistance": {
+    "price": null,
+    "strength": "string",
+    "rationale": "string"
+  }
+},
   multiTimeframeAnalysis?: {
     chart1?: {
       timeframe?: string;
