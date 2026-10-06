@@ -114,9 +114,34 @@ export const ProResultCard: React.FC<ProResultCardProps> = ({
 
   // Timeframe Insights derivation
   const mtf = analysis.multiTimeframeAnalysis;
-  const tf1Name = mtf?.chart1?.timeframe || 'H4';
-  const tf2Name = mtf?.chart2?.timeframe || 'H1';
-  const tf3Name = mtf?.chart3?.timeframe || 'M15';
+const mtfSupport = analysis.multiTimeframeSupport;
+
+const support1 = mtfSupport?.support1;
+const resistance1 = mtfSupport?.resistance1;
+
+const support2 = mtfSupport?.support2;
+const resistance2 = mtfSupport?.resistance2;
+
+const support3 = mtfSupport?.support3;
+const resistance3 = mtfSupport?.resistance3;
+
+const combinedMajorSupport = mtfSupport?.combinedMajorSupport;
+const combinedMajorResistance = mtfSupport?.combinedMajorResistance;
+
+const tf1Name =
+  mtf?.chart1?.timeframe ||
+  support1?.timeframe ||
+  'Unknown';
+
+const tf2Name =
+  mtf?.chart2?.timeframe ||
+  support2?.timeframe ||
+  'Unknown';
+
+const tf3Name =
+  mtf?.chart3?.timeframe ||
+  support3?.timeframe ||
+  'Unknown';
 
   const directionInsight =
     mtf?.chart1?.observations ||
