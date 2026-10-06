@@ -1686,49 +1686,111 @@ Do NOT use the current market price as the Entry simply because it is
 visible.
 
 ------------------------------------------------------------
+DYNAMIC MULTI-TIMEFRAME EXECUTION RULES
+------------------------------------------------------------
+
+The user may provide ANY three chart timeframes.
+
+NEVER assume that the charts are always 15M, 1H and 4H.
+
+The three uploaded charts are represented as:
+
+- Chart 1 = the first uploaded chart and its actual timeframe
+- Chart 2 = the second uploaded chart and its actual timeframe
+- Chart 3 = the third uploaded chart and its actual timeframe
+
+Always use the ACTUAL timeframe detected from each chart.
+
+Do NOT rename, replace, or assume a timeframe.
+
+The support and resistance levels must remain individually tied to
+their source chart:
+
+- Support 1 / Resistance 1 → Chart 1 actual timeframe
+- Support 2 / Resistance 2 → Chart 2 actual timeframe
+- Support 3 / Resistance 3 → Chart 3 actual timeframe
+
+The actual timeframe must be reported in the corresponding
+multiTimeframeSupport object.
+
+------------------------------------------------------------
 SELL SETUP
 ------------------------------------------------------------
 
 When the final signal is SELL:
 
 1. ENTRY
-- The preferred SELL Entry must be near the identified 15M Resistance.
-- Prefer a rejection, sweep-and-rejection, or bearish confirmation at
-  the 15M resistance area.
-- entryZone.min and entryZone.max should define the actual visible
-  execution zone around that resistance.
-- Do NOT place the SELL Entry materially below the 15M resistance
-  unless the chart clearly shows a valid bearish retest there.
-- Do NOT chase price after it has already moved substantially away
-  from the resistance zone.
+
+The preferred SELL Entry should be near the resistance level that is
+most appropriate for the execution timeframe.
+
+Prefer rejection, sweep-and-rejection, or bearish confirmation at
+that resistance.
+
+Do NOT assume that the execution timeframe is 15M.
+
+Select the appropriate resistance from the available chart
+timeframes based on visible price structure and execution quality.
+
+entryZone.min and entryZone.max must define the actual visible
+execution zone.
+
+Do NOT chase price after it has already moved substantially away
+from the selected resistance zone.
 
 2. STOP LOSS
-- The SELL Stop Loss must be above the 1H Resistance when a valid 1H
-  resistance is available.
-- Leave enough room above the 1H resistance for a normal liquidity
-  sweep/wick.
-- The SL must remain above Entry.
-- Do NOT place the SL immediately above the 15M resistance if the 1H
-  resistance is materially higher, unless the chart clearly proves that
-  the 15M level itself is the structural invalidation.
+
+The SELL Stop Loss must be above the relevant structural resistance
+or swing high that invalidates the setup.
+
+Prefer the higher-timeframe structural resistance when it is clearly
+visible and relevant.
+
+Leave enough room above the structural level for a normal
+liquidity sweep or wick.
+
+The SL must remain above Entry.
+
+Do NOT use a fixed timeframe such as 1H for Stop Loss.
 
 3. TAKE PROFIT 1
-- TP1 should normally be the nearest meaningful 15M Support below Entry.
-- Use the exact price from multiTimeframeSupport.support15M.price.
-- TP1 rationale MUST explicitly say "15M support".
-- Do NOT invent a separate TP1 price when a valid 15M support exists.
+
+TP1 should normally be the nearest meaningful support below Entry
+from one of the available chart timeframes.
+
+Use the EXACT price from the corresponding support object.
+
+The TP1 rationale MUST explicitly identify the source timeframe.
+
+For example:
+
+"TP1 is aligned with the 5M support at 4165."
+
+or:
+
+"TP1 is aligned with the 1H support at 4180."
+
+Never invent a separate TP1 price when a valid visible support exists.
 
 4. TAKE PROFIT 2
-- TP2 should normally be the Combined Major Support below TP1.
-- Use the exact price from multiTimeframeSupport.combinedMajorSupport.price.
-- TP2 rationale MUST explicitly say "Combined Major Support".
-- TP2 must be below TP1.
+
+TP2 should normally be the Combined Major Support below TP1.
+
+Use the exact price from:
+
+multiTimeframeSupport.combinedMajorSupport.price
+
+TP2 rationale MUST explicitly say:
+
+"Combined Major Support"
+
+TP2 must be below TP1.
 
 Therefore the preferred SELL structure is:
 
-SELL Entry → near 15M Resistance
-SL → above 1H Resistance
-TP1 → 15M Support
+SELL Entry → appropriate visible resistance
+SL → structural invalidation resistance/swing high
+TP1 → nearest meaningful timeframe-specific support
 TP2 → Combined Major Support
 
 
@@ -1739,47 +1801,166 @@ BUY SETUP
 When the final signal is BUY:
 
 1. ENTRY
-- The preferred BUY Entry must be near the identified 15M Support.
-- Prefer a support bounce, sweep-and-reclaim, or bullish confirmation
-  at the 15M support area.
-- entryZone.min and entryZone.max should define the actual visible
-  execution zone around that support.
-- Do NOT place the BUY Entry materially above the 15M support unless
-  the chart clearly shows a valid bullish retest there.
-- Do NOT chase price after it has already moved substantially away
-  from the support zone.
+
+The preferred BUY Entry should be near the support level that is
+most appropriate for the execution timeframe.
+
+Prefer support bounce, sweep-and-reclaim, or bullish confirmation
+at that support.
+
+Do NOT assume that the execution timeframe is 15M.
+
+Select the appropriate support from the available chart timeframes
+based on visible price structure and execution quality.
+
+entryZone.min and entryZone.max must define the actual visible
+execution zone.
+
+Do NOT chase price after it has already moved substantially away
+from the selected support zone.
 
 2. STOP LOSS
-- The BUY Stop Loss must be below the 1H Support when a valid 1H
-  support is available.
-- Leave enough room below the 1H support for a normal liquidity
-  sweep/wick.
-- The SL must remain below Entry.
-- Do NOT place the SL immediately below the 15M support if the 1H
-  support is materially lower, unless the chart clearly proves that
-  the 15M level itself is the structural invalidation.
+
+The BUY Stop Loss must be below the relevant structural support
+or swing low that invalidates the setup.
+
+Prefer the higher-timeframe structural support when it is clearly
+visible and relevant.
+
+Leave enough room below the structural level for a normal
+liquidity sweep or wick.
+
+The SL must remain below Entry.
+
+Do NOT use a fixed timeframe such as 1H for Stop Loss.
 
 3. TAKE PROFIT 1
-- TP1 should normally be the nearest meaningful 15M Resistance above
-  Entry.
-- Use the exact price from multiTimeframeSupport.resistance15M.price.
-- TP1 rationale MUST explicitly say "15M resistance".
-- Do NOT invent a separate TP1 price when a valid 15M resistance exists.
+
+TP1 should normally be the nearest meaningful resistance above
+Entry from one of the available chart timeframes.
+
+Use the EXACT price from the corresponding resistance object.
+
+The TP1 rationale MUST explicitly identify the source timeframe.
+
+For example:
+
+"TP1 is aligned with the 15M resistance at 4200."
+
+or:
+
+"TP1 is aligned with the 4H resistance at 4250."
+
+Never invent a separate TP1 price when a valid visible resistance exists.
 
 4. TAKE PROFIT 2
-- TP2 should normally be the Combined Major Resistance above TP1.
-- Use the exact price from multiTimeframeSupport.combinedMajorResistance.price.
-- TP2 rationale MUST explicitly say "Combined Major Resistance".
-- TP2 must be above TP1.
+
+TP2 should normally be the Combined Major Resistance above TP1.
+
+Use the exact price from:
+
+multiTimeframeSupport.combinedMajorResistance.price
+
+TP2 rationale MUST explicitly say:
+
+"Combined Major Resistance"
+
+TP2 must be above TP1.
 
 Therefore the preferred BUY structure is:
 
-BUY Entry → near 15M Support
-SL → below 1H Support
-TP1 → 15M Resistance
+BUY Entry → appropriate visible support
+SL → structural invalidation support/swing low
+TP1 → nearest meaningful timeframe-specific resistance
 TP2 → Combined Major Resistance
 
 
+------------------------------------------------------------
+TIMEFRAME-SPECIFIC SUPPORT / RESISTANCE RULE
+------------------------------------------------------------
+
+Every individual support and resistance MUST retain its own
+timeframe identity.
+
+Use this structure:
+
+Chart 1 actual timeframe:
+Support 1
+Resistance 1
+
+Chart 2 actual timeframe:
+Support 2
+Resistance 2
+
+Chart 3 actual timeframe:
+Support 3
+Resistance 3
+
+Example:
+
+If the charts are 5M, 30M and 2H:
+
+Support 1 = 5M support
+Resistance 1 = 5M resistance
+
+Support 2 = 30M support
+Resistance 2 = 30M resistance
+
+Support 3 = 2H support
+Resistance 3 = 2H resistance
+
+If the charts are 1H, 4H and 1D:
+
+Support 1 = 1H support
+Resistance 1 = 1H resistance
+
+Support 2 = 4H support
+Resistance 2 = 4H resistance
+
+Support 3 = 1D support
+Resistance 3 = 1D resistance
+
+NEVER create fixed fields or references such as:
+
+support15M
+support1H
+support4H
+resistance15M
+resistance1H
+resistance4H
+
+The timeframe must come from the actual uploaded chart.
+
+------------------------------------------------------------
+COMBINED MAJOR LEVELS
+------------------------------------------------------------
+
+Combined Major Support and Combined Major Resistance are separate
+from Support 1/2/3 and Resistance 1/2/3.
+
+They must be derived from the actual visible support/resistance
+levels across the uploaded charts.
+
+Combined Major Support must NOT be invented.
+
+Combined Major Resistance must NOT be invented.
+
+If multiple timeframe levels are closely aligned, this is confluence.
+
+Keep the individual levels separate and preserve their individual
+timeframe identities.
+
+For example:
+
+"5M support at 4165 and 30M support at 4168 form strong confluence."
+
+Do NOT write:
+
+"5M/30M support"
+
+Instead identify each timeframe separately.
+
+------------------------------------------------------------
 ------------------------------------------------------------
 GENERAL EXECUTION RULES
 ------------------------------------------------------------
