@@ -317,27 +317,53 @@ interface ChartAnalysis {
     strength?: string;
   }>;
   multiTimeframeSupport?: {
-    support15M?: {
-     price?: number | null;
-      strength?: string;
-      rationale?: string;
-    };
-    support1H?: {
-      price?: number | null;
-      strength?: string;
-      rationale?: string;
-    };
-    support4H?: {
-      price?: number | null;
-      strength?: string;
-      rationale?: string;
-    };
-    combinedMajorSupport?: {
-      price?: number | null;
-      strength?: string;
-      rationale?: string;
-    };
-  }
+  support1?: {
+    timeframe?: string;
+    price?: number | null;
+    strength?: string;
+    rationale?: string;
+  };
+  resistance1?: {
+    timeframe?: string;
+    price?: number | null;
+    strength?: string;
+    rationale?: string;
+  };
+  support2?: {
+    timeframe?: string;
+    price?: number | null;
+    strength?: string;
+    rationale?: string;
+  };
+  resistance2?: {
+    timeframe?: string;
+    price?: number | null;
+    strength?: string;
+    rationale?: string;
+  };
+  support3?: {
+    timeframe?: string;
+    price?: number | null;
+    strength?: string;
+    rationale?: string;
+  };
+  resistance3?: {
+    timeframe?: string;
+    price?: number | null;
+    strength?: string;
+    rationale?: string;
+  };
+  combinedMajorSupport?: {
+    price?: number | null;
+    strength?: string;
+    rationale?: string;
+  };
+  combinedMajorResistance?: {
+    price?: number | null;
+    strength?: string;
+    rationale?: string;
+  };
+}
 
   resistanceLevels?: Array<{
     level?: string;
