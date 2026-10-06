@@ -2261,27 +2261,67 @@ Do not create a new support price in the explanation.
 Before writing the final explanation or unified trade plan, use the
 multiTimeframeSupport data that was identified from the charts.
 
-The final analysis MUST explicitly report:
+The final analysis MUST explicitly report the support levels for all
+three uploaded charts using their ACTUAL detected timeframes.
 
-15M Support: [price or Unavailable]
-1H Support: [price or Unavailable]
-4H Support: [price or Unavailable]
-Combined Major Support: [price]
+Report them in this structure:
+
+[Chart 1 actual timeframe] Support: [price or Unavailable]
+[Chart 2 actual timeframe] Support: [price or Unavailable]
+[Chart 3 actual timeframe] Support: [price or Unavailable]
+Combined Major Support: [price or Unavailable]
 
 For each available timeframe, briefly explain why that level qualifies
 as support based on visible chart structure.
 
-The final explanation MUST NOT replace these individual levels with a
-generic phrase such as:
-"1H/4H support"
-when a readable 15M chart is available.
+The same rule applies to resistance levels:
 
-If the 15M, 1H and 4H support levels are different, preserve the
-differences and explain which one is the Combined Major Support.
+[Chart 1 actual timeframe] Resistance: [price or Unavailable]
+[Chart 2 actual timeframe] Resistance: [price or Unavailable]
+[Chart 3 actual timeframe] Resistance: [price or Unavailable]
+Combined Major Resistance: [price or Unavailable]
+
+NEVER assume that the timeframes are 15M, 1H and 4H.
+
+The actual timeframe must come from the uploaded chart.
+
+If the three uploaded charts are 5M, 30M and 2H, report:
+
+5M Support: [price or Unavailable]
+30M Support: [price or Unavailable]
+2H Support: [price or Unavailable]
+
+If the three uploaded charts are 1H, 4H and 1D, report:
+
+1H Support: [price or Unavailable]
+4H Support: [price or Unavailable]
+1D Support: [price or Unavailable]
+
+Preserve each timeframe's individual identity.
+
+NEVER replace individual timeframe levels with combined labels such as:
+
+"15M/1H support"
+"1H/4H support"
+"15M/1H/4H support"
 
 If multiple timeframe supports are closely aligned, explicitly mention
-the confluence.
+the confluence while keeping each support level individually identified.
 
+The Combined Major Support MUST be based on the actual visible support
+levels from the uploaded charts.
+
+The Combined Major Resistance MUST be based on the actual visible
+resistance levels from the uploaded charts.
+
+Never fabricate or estimate a missing timeframe level.
+If a timeframe level is unavailable, explicitly report:
+
+"[Actual Timeframe] Support: Unavailable"
+
+or:
+
+"[Actual Timeframe] Resistance: Unavailable"
 The Combined Major Support MUST be based on the actual visible
 timeframe support levels and MUST NOT be invented.
 
