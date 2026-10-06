@@ -1487,6 +1487,28 @@ Use this exact general structure:
 
   "detailedExplanation": "string"
 }
+MULTI-TIMEFRAME SUPPORT & RESISTANCE:
+
+For the uploaded charts, you MUST identify THREE distinct support levels and THREE distinct resistance levels from the visible chart structure.
+
+Return them in the "multiTimeframeSupport" JSON object.
+
+Rules:
+- support1 = nearest technically valid support below current price.
+- resistance1 = nearest technically valid resistance above current price.
+- support2 = next significant support below support1.
+- resistance2 = next significant resistance above resistance1.
+- support3 = next major support below support2.
+- resistance3 = next major resistance above resistance2.
+- combinedMajorSupport = strongest/confluent support level identified across the analyzed timeframes.
+- combinedMajorResistance = strongest/confluent resistance level identified across the analyzed timeframes.
+- Every level MUST contain a numerical "price" whenever that level is visible or technically derivable from the uploaded chart.
+- Do NOT leave price null if a valid level can be identified from the chart.
+- Do NOT invent prices or use market data that is not visible in the uploaded chart.
+- "strength" must be one of: Strong, Moderate, Weak.
+- "rationale" must briefly explain the visible technical reason for the level.
+- Support prices must be below current price and resistance prices must be above current price.
+- Keep the levels ordered from nearest to farthest from current price.
 
 IMPORTANT:
 
