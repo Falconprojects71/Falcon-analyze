@@ -1,0 +1,19 @@
+node_modules/
+build/
+dist/
+coverage/
+.DS_Store
+*.log
+.env*
+!.env.example
+
+# Persistent user data, sessions, checkouts & databases (NEVER commit)
+data/
+*.tmp
+
+# Private backups and AI Studio artifacts
+backups/
+.aistudio/
+*.bak*
+*.bak_*
+
