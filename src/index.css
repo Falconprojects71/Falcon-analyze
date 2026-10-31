@@ -2,14 +2,96 @@
 
 @layer base {
   body {
-    font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
-    background-color: #080B11;
-    color: #E2E8F0;
+    font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background-color: #F2F4F8;
+    color: #182338;
   }
 
   code, pre, .font-mono {
-    font-family: 'JetBrains Mono', monospace;
+    font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   }
+}
+
+html,
+body,
+#root {
+  background-color: #F2F4F8;
+  color: #182338;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+/* Dark Mode Global Styles */
+html.dark,
+html.dark body,
+html.dark #root {
+  background-color: #0B0F19;
+  color: #F1F5F9;
+  color-scheme: dark;
+}
+
+/* Dark mode utility adaptors */
+html.dark .bg-white {
+  background-color: #111827 !important;
+}
+
+html.dark .bg-white\/95 {
+  background-color: rgba(17, 24, 39, 0.95) !important;
+}
+
+html.dark .bg-white\/90 {
+  background-color: rgba(17, 24, 39, 0.9) !important;
+}
+
+html.dark .bg-white\/80 {
+  background-color: rgba(17, 24, 39, 0.8) !important;
+}
+
+html.dark .bg-\[\#F2F4F8\] {
+  background-color: #0B0F19 !important;
+}
+
+html.dark .bg-\[\#F8FAFC\] {
+  background-color: #131A29 !important;
+}
+
+html.dark .bg-\[\#E9EDF5\] {
+  background-color: #1E283D !important;
+}
+
+html.dark .text-\[\#182338\] {
+  color: #F1F5F9 !important;
+}
+
+html.dark .text-\[\#0F172A\] {
+  color: #FFFFFF !important;
+}
+
+html.dark .text-\[\#334155\] {
+  color: #CBD5E1 !important;
+}
+
+html.dark .text-\[\#475569\] {
+  color: #94A3B8 !important;
+}
+
+html.dark .text-\[\#64748B\] {
+  color: #94A3B8 !important;
+}
+
+html.dark .border-\[\#D8DFEA\] {
+  border-color: #243046 !important;
+}
+
+html.dark .border-\[\#E2E8F0\] {
+  border-color: #1F293D !important;
+}
+
+html.dark .border-\[\#CBD5E1\] {
+  border-color: #334155 !important;
+}
+
+html.dark .bg-\[\#E8F0FF\] {
+  background-color: rgba(36, 91, 219, 0.18) !important;
 }
 
 /* Custom terminal scrollbars */
@@ -19,50 +101,63 @@
 }
 
 ::-webkit-scrollbar-track {
-  background: #0B0F19;
+  background: #E9EDF5;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #1E293B;
+  background: #D8DFEA;
   border-radius: 3px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #334155;
+  background: #245BDB;
 }
 
-/* Trading Terminal Glows */
-.glow-emerald {
-  box-shadow: 0 0 25px -5px rgba(0, 240, 160, 0.25);
+html.dark ::-webkit-scrollbar-track {
+  background: #0B0F19;
 }
 
-.glow-rose {
-  box-shadow: 0 0 25px -5px rgba(244, 63, 94, 0.25);
+html.dark ::-webkit-scrollbar-thumb {
+  background: #243046;
 }
 
-.glow-cyan {
-  box-shadow: 0 0 25px -5px rgba(6, 182, 212, 0.25);
+html.dark ::-webkit-scrollbar-thumb:hover {
+  background: #3B82F6;
 }
 
-.glow-amber {
-  box-shadow: 0 0 25px -5px rgba(245, 158, 11, 0.25);
+/* Subtle Professional Shadows */
+.shadow-subtle {
+  box-shadow: 0 4px 20px -2px rgba(24, 35, 56, 0.08);
 }
 
-/* Pulse animation for scanning */
+html.dark .shadow-subtle {
+  box-shadow: 0 4px 24px -2px rgba(0, 0, 0, 0.4);
+}
+
+.shadow-card {
+  box-shadow: 0 1px 3px 0 rgba(24, 35, 56, 0.06), 0 1px 2px -1px rgba(24, 35, 56, 0.04);
+}
+
+html.dark .shadow-card {
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.3), 0 1px 2px -1px rgba(0, 0, 0, 0.2);
+}
+
+/* Subtle scanning pulse */
 @keyframes laserScan {
   0% {
     top: 0%;
-    opacity: 0.8;
+    opacity: 0.6;
   }
   50% {
-    opacity: 1;
+    opacity: 0.9;
   }
   100% {
     top: 100%;
-    opacity: 0.8;
+    opacity: 0.6;
   }
 }
 
 .animate-laser {
-  animation: laserScan 2.2s ease-in-out infinite alternate;
+  animation: laserScan 2.5s ease-in-out infinite alternate;
 }
+

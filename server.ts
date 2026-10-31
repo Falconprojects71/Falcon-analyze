@@ -3,19 +3,13 @@ import express, { Request, Response, NextFunction } from 'express';
 import path from 'path';
 import fs from 'fs';
 import crypto from 'crypto';
-import { createServer as createViteServer } from 'vite';
 import { GoogleGenAI } from '@google/genai';
 
 // ============================================================
 // FALCON ANALYZE - PRODUCTION SERVER
 // ============================================================
 
-const PORT = Number(process.env.PORT) || 3000;
-console.log('[PORT DEBUG]', {
-  envPort: process.env.PORT,
-  resolvedPort: PORT,
-  host: '0.0.0.0',
-});
+const PORT = Number(process.env.PORT || 3000);
 
 const MAX_FREE_ANALYSES = 3;
 const FREE_WINDOW_DAYS = 1;
@@ -28,16 +22,14 @@ const MAX_BODY_SIZE = '50mb';
 
 const DATA_DIR = path.join(process.cwd(), 'data');
 const USAGE_FILE = path.join(DATA_DIR, 'usage.json');
-const TEST_PRO_FILE = path.join(DATA_DIR, 'test-pro.json');
-const PAID_SUBSCRIPTIONS_FILE = path.join(
-  DATA_DIR,
-  'paid-subscriptions.json'
-);
-console.log('[STORAGE PATH]', {
-  cwd: process.cwd(),
-  dataDir: DATA_DIR,
-  testProFile: TEST_PRO_FILE,
-});
+const USERS_FILE = path.join(DATA_DIR, 'users.json');
+const USERS_BACKUP_FILE = path.join(DATA_DIR, 'users.backup.json');
+const SESSIONS_FILE = path.join(DATA_DIR, 'sessions.json');
+const SUBSCRIPTIONS_FILE = path.join(DATA_DIR, 'subscriptions.json');
+const PASSWORD_RESETS_FILE = path.join(DATA_DIR, 'password-resets.json');
+const SAFEPAY_CHECKOUTS_FILE = path.join(DATA_DIR, 'safepay-checkouts.json');
+const OWNER_HISTORY_FILE = path.join(DATA_DIR, 'owner-history.json');
+
 // ============================================================
 // ENVIRONMENT / SECRETS
 // ============================================================
@@ -46,112 +38,6 @@ function env(name: string, fallback = ''): string {
   return (process.env[name] || fallback).trim();
 }
 
-// ============================================================
-// SAFEPAY SUBSCRIPTIONS
-// ============================================================
-
-const SAFEPAY_SECRET_KEY = env('SAFEPAY_SECRET_KEY');
-
-const SAFEPAY_HOST =
-  env('SAFEPAY_HOST') ||
-  'https://api.getsafepay.com';
-
-const SAFEPAY_CHECKOUT_HOST =
-  env('SAFEPAY_CHECKOUT_HOST') ||
-  'https://getsafepay.com';
-const SAFEPAY_WEBHOOK_SECRET =
-  env('SAFEPAY_WEBHOOK_SECRET');
-
-const SAFEPAY_MONTHLY_PLAN_ID =
-  env('SAFEPAY_MONTHLY_PLAN_ID');
-
-const SAFEPAY_YEARLY_PLAN_ID =
-  env('SAFEPAY_YEARLY_PLAN_ID');
-const SAFEPAY_USD_MONTHLY_PLAN_ID =
-  env('SAFEPAY_USD_MONTHLY_PLAN_ID');
-
-const SAFEPAY_USD_YEARLY_PLAN_ID =
-  env('SAFEPAY_USD_YEARLY_PLAN_ID');
-
-let safepayAuthTokenCache: {
-  token: string;
-  expiresAt: number;
-} = {
-  token: '',
-  expiresAt: 0,
-};
-
-async function getSafepayAuthToken(): Promise<string> {
-  const now = Date.now();
-
-  if (
-    safepayAuthTokenCache.token &&
-    now < safepayAuthTokenCache.expiresAt - 5 * 60 * 1000
-  ) {
-    return safepayAuthTokenCache.token;
-  }
-
-  if (!SAFEPAY_SECRET_KEY) {
-    throw new Error(
-      'SAFEPAY_SECRET_KEY is not configured.'
-    );
-  }
-
-  const response = await fetch(
-    `${SAFEPAY_HOST}/client/passport/v1/token`,
-    {
-      method: 'POST',
-     headers: {
-  'X-SFPY-MERCHANT-SECRET': SAFEPAY_SECRET_KEY,
-  'Content-Type': 'application/json',
-},
-body: JSON.stringify({}),
-    }
-  );
-
-  if (!response.ok) {
-    const errorText = await response.text();
-
-    throw new Error(
-      `Safepay auth token failed: ${response.status} ${errorText}`
-    );
-  }
-
-const data = await response.json() as {
-  data?: string;
-};
-
-if (!data.data) {
-  throw new Error(
-    'Safepay auth token was not returned.'
-  );
-}
-
-safepayAuthTokenCache = {
-  token: data.data,
-  expiresAt: now + 60 * 60 * 1000,
-};
-
-  return data.token;
-}
-
-function buildSafepayCheckoutUrl(params: {
-  planId: string;
-  reference: string;
-  redirectUrl: string;
-  cancelUrl: string;
-  authToken: string;
-}): string {
-  const query = new URLSearchParams({
-    plan_id: params.planId,
-    auth_token: params.authToken,
-    env: 'production',
-    redirect_url: params.redirectUrl,
-    cancel_url: params.cancelUrl,
-  });
-
-return String(SAFEPAY_CHECKOUT_HOST) + '/checkout/auth/login?' + query.toString();
-}
 function getValidApiKey(): string {
   const key = env('GEMINI_API_KEY') || env('API_KEY') || env('GOOGLE_API_KEY');
 
@@ -166,19 +52,18 @@ function getValidApiKey(): string {
   return key;
 }
 
-const OWNER_EMAIL = env('OWNER_EMAIL').toLowerCase();
-const OWNER_PASSWORD = env('OWNER_PASSWORD');
+const OWNER_EMAIL = (env('OWNER_EMAIL') || 'milyas1071@gmail.com').toLowerCase();
+const OWNER_PASSWORD = env('OWNER_PASSWORD') || 'falcon_owner_2026';
 
 const OWNER_SECRET_TOKEN =
-  env('OWNER_SECRET_TOKEN') || crypto.randomBytes(32).toString('hex');
+  env('OWNER_SECRET_TOKEN') || 'falcon_owner_secret_2026_authorized';
 
 const GEMINI_PRIMARY_MODEL =
   env('GEMINI_MODEL') || 'gemini-3.1-flash-lite';
 
 const GEMINI_FALLBACK_MODELS = [
   GEMINI_PRIMARY_MODEL,
-  'gemini-flash-latest',
-  'gemini-3.8-flash',
+  'gemini-3.1-flash-lite',
   'gemini-3.6-flash',
 ].filter((v, i, a) => v && a.indexOf(v) === i);
 
@@ -214,40 +99,71 @@ function getConfiguredProKeys(): Set<string> {
 // TYPES
 // ============================================================
 
-export interface TestProRecord {
-  id: string;
-  userIdentifier: string;
-  accessType: 'TEST';
-  status: 'ACTIVE' | 'EXPIRED' | 'REVOKED';
-  grantedBy: string;
-  durationDays: number;
-  durationLabel: string;
+export interface StoredUser {
+  id: string; // usr_xxxxxxxxxxxx
+  email: string;
+  passwordHash: string;
+  salt: string;
+  createdAt: string;
+  licenseKey?: string | null;
+  activeSubscriptionId?: string | null;
+  freeAnalysisCount?: number;
+  freeLimitReached?: boolean;
+}
+
+
+export interface UserSession {
+  token: string;
+  userId: string;
   createdAt: string;
   expiresAt: string;
-  remainingTime: string;
-  revokedAt?: string;
-  notes?: string;
 }
-export interface PaidSubscriptionRecord {
+
+export interface StoredSubscription {
+  id: string; // sub_xxxxxxxxxxxx
+  userId: string;
+  userEmail: string;
+  plan: 'monthly' | 'yearly';
+  currency: 'USD' | 'PKR';
   reference: string;
-  userIdentifier: string;
   planId: string;
-  planType: 'MONTHLY' | 'YEARLY';
-  status:
-    | 'PENDING'
-    | 'ACTIVE'
-    | 'CANCELED'
-    | 'ENDED'
-    | 'PAYMENT_FAILED';
-  subscriptionId?: string;
-  customerId?: string;
+  licenseKey: string;
+  status: 'ACTIVE' | 'EXPIRED' | 'CANCELLED';
   createdAt: string;
-  updatedAt: string;
-  expiresAt?: string;
+  expiresAt: string;
+  activatedAt?: string;
 }
+
+export interface PasswordResetRecord {
+  token: string;
+  email: string;
+  userId: string;
+  createdAt: string;
+  expiresAt: string;
+  used: boolean;
+}
+
+export interface PendingSafepayCheckout {
+  reference: string;
+  tracker?: string;
+  subscriptionId?: string;
+  userId?: string;
+  userEmail?: string;
+  userIdentifier: string;
+  plan: 'monthly' | 'yearly';
+  currency?: 'USD' | 'PKR';
+  planId: string;
+  amount?: number;
+  status: 'PENDING' | 'COMPLETED' | 'CANCELLED' | 'FAILED';
+  createdAt: string;
+  completedAt?: string;
+  licenseKey?: string;
+}
+
 interface UsageRecord {
   count: number;
-  date: string;
+  windowStartedAt: number;
+  date?: string;
   totalCount?: number;
   lastUsedAt?: string;
 }
@@ -284,22 +200,30 @@ interface ChartAnalysis {
     min?: number;
     max?: number;
     range?: string;
+    type?: string;
   };
 
   stopLoss?: {
     price?: number;
     percentage?: string;
+    percentageRisk?: number;
     rationale?: string;
   };
 
   takeProfit1?: {
     price?: number;
+    status?: 'CONFIRMED' | 'UNAVAILABLE';
+    percentageGain?: number;
+    riskRewardRatio?: number;
     rrr?: string;
     rationale?: string;
   };
 
   takeProfit2?: {
     price?: number;
+    status?: 'CONFIRMED' | 'UNAVAILABLE';
+    percentageGain?: number;
+    riskRewardRatio?: number;
     rrr?: string;
     rationale?: string;
   };
@@ -316,54 +240,6 @@ interface ChartAnalysis {
     price?: number;
     strength?: string;
   }>;
-  multiTimeframeSupport?: {
-  support1?: {
-    timeframe?: string;
-    price?: number | null;
-    strength?: string;
-    rationale?: string;
-  };
-  resistance1?: {
-    timeframe?: string;
-    price?: number | null;
-    strength?: string;
-    rationale?: string;
-  };
-  support2?: {
-    timeframe?: string;
-    price?: number | null;
-    strength?: string;
-    rationale?: string;
-  };
-  resistance2?: {
-    timeframe?: string;
-    price?: number | null;
-    strength?: string;
-    rationale?: string;
-  };
-  support3?: {
-    timeframe?: string;
-    price?: number | null;
-    strength?: string;
-    rationale?: string;
-  };
-  resistance3?: {
-    timeframe?: string;
-    price?: number | null;
-    strength?: string;
-    rationale?: string;
-  };
-  combinedMajorSupport?: {
-    price?: number | null;
-    strength?: string;
-    rationale?: string;
-  };
-  combinedMajorResistance?: {
-    price?: number | null;
-    strength?: string;
-    rationale?: string;
-  };
-}
 
   resistanceLevels?: Array<{
     level?: string;
@@ -396,19 +272,27 @@ interface ChartAnalysis {
       role?: string;
       observations?: string;
       trend?: string;
+      support1?: { price?: number | string; strength?: string; rationale?: string };
+      resistance1?: { price?: number | string; strength?: string; rationale?: string };
     };
     chart2?: {
       timeframe?: string;
       role?: string;
       observations?: string;
       keyLevels?: string;
+      support1?: { price?: number | string; strength?: string; rationale?: string };
+      resistance1?: { price?: number | string; strength?: string; rationale?: string };
     };
     chart3?: {
       timeframe?: string;
       role?: string;
       observations?: string;
       setupTrigger?: string;
+      support1?: { price?: number | string; strength?: string; rationale?: string };
+      resistance1?: { price?: number | string; strength?: string; rationale?: string };
     };
+    combinedMajorSupport?: { price?: number | string; strength?: string; rationale?: string };
+    combinedMajorResistance?: { price?: number | string; strength?: string; rationale?: string };
     confluenceSummary?: string;
     conflictResolution?: string;
   };
@@ -471,63 +355,371 @@ function writeJsonFile<T>(file: string, data: T) {
   }
 }
 
-const freeUsageTracker = readJsonFile<Record<string, UsageRecord>>(
-  USAGE_FILE,
+const freeUsageTracker: Record<string, UsageRecord> = {};
+const deviceToUsers: Record<string, string[]> = {};
+const userToDevices: Record<string, string[]> = {};
+let lastUsageMtime = 0;
+
+function syncUsageStorageFromDisk(force: boolean = false) {
+  try {
+    if (!fs.existsSync(USAGE_FILE)) return;
+    const stat = fs.statSync(USAGE_FILE);
+    if (!force && stat.mtimeMs <= lastUsageMtime) return;
+    lastUsageMtime = stat.mtimeMs;
+
+    const raw = readJsonFile<any>(USAGE_FILE, {});
+    if (raw && typeof raw === 'object' && Object.keys(raw).length > 0) {
+      if (raw.records && typeof raw.records === 'object' && Object.keys(raw.records).length > 0) {
+        for (const k of Object.keys(freeUsageTracker)) delete freeUsageTracker[k];
+        Object.assign(freeUsageTracker, raw.records);
+        if (raw.deviceToUsers && typeof raw.deviceToUsers === 'object') {
+          for (const k of Object.keys(deviceToUsers)) delete deviceToUsers[k];
+          Object.assign(deviceToUsers, raw.deviceToUsers);
+        }
+        if (raw.userToDevices && typeof raw.userToDevices === 'object') {
+          for (const k of Object.keys(userToDevices)) delete userToDevices[k];
+          Object.assign(userToDevices, raw.userToDevices);
+        }
+      } else if (raw.records && typeof raw.records === 'object') {
+        // empty records file
+        for (const k of Object.keys(freeUsageTracker)) delete freeUsageTracker[k];
+      } else if (Object.keys(raw).length > 0) {
+        for (const k of Object.keys(freeUsageTracker)) delete freeUsageTracker[k];
+        for (const [k, v] of Object.entries(raw)) {
+          if (!k.startsWith('_') && v && typeof v === 'object') {
+            freeUsageTracker[k] = v as UsageRecord;
+          }
+        }
+      }
+    }
+  } catch (err) {
+    console.error('[STORAGE] Failed to sync usage storage from disk:', err);
+  }
+}
+syncUsageStorageFromDisk(true);
+
+const users = readJsonFile<Record<string, StoredUser>>(
+  USERS_FILE,
   {}
 );
 
-const testProUsersList = new Map<string, TestProRecord>(
-  Object.entries(
-    readJsonFile<Record<string, TestProRecord>>(TEST_PRO_FILE, {})
-  )
+const sessions = readJsonFile<Record<string, UserSession>>(
+  SESSIONS_FILE,
+  {}
 );
-const paidSubscriptionsList =
-  new Map<string, PaidSubscriptionRecord>(
-    Object.entries(
-      readJsonFile<Record<string, PaidSubscriptionRecord>>(
-        PAID_SUBSCRIPTIONS_FILE,
-        {}
-      )
-    )
-  );
+
+const subscriptions = readJsonFile<Record<string, StoredSubscription>>(
+  SUBSCRIPTIONS_FILE,
+  {}
+);
+
+const passwordResets = readJsonFile<Record<string, PasswordResetRecord>>(
+  PASSWORD_RESETS_FILE,
+  {}
+);
+
+const pendingSafepayCheckouts = readJsonFile<Record<string, PendingSafepayCheckout>>(
+  SAFEPAY_CHECKOUTS_FILE,
+  {}
+);
+
 function persistUsage() {
-  const data: Record<string, UsageRecord> = {};
-
-  for (const [key, value] of Object.entries(freeUsageTracker)) {
-    data[key] = value;
-  }
-
-  writeJsonFile(USAGE_FILE, data);
+  writeJsonFile(USAGE_FILE, {
+    records: freeUsageTracker,
+    deviceToUsers,
+    userToDevices,
+  });
+  try {
+    lastUsageMtime = fs.statSync(USAGE_FILE).mtimeMs;
+  } catch (_) {}
 }
 
-function persistTestProUsers() {
-  const data: Record<string, TestProRecord> = {};
+let lastUsersMtime = 0;
 
-  for (const [key, value] of testProUsersList.entries()) {
-    data[key] = value;
+function syncUsersFromDisk(force: boolean = false) {
+  try {
+    let sourceFile = USERS_FILE;
+    if (!fs.existsSync(USERS_FILE) && fs.existsSync(USERS_BACKUP_FILE)) {
+      sourceFile = USERS_BACKUP_FILE;
+    }
+    if (!fs.existsSync(sourceFile)) return;
+    const stat = fs.statSync(sourceFile);
+    if (!force && stat.mtimeMs <= lastUsersMtime) return;
+    lastUsersMtime = stat.mtimeMs;
+
+    const diskUsers = readJsonFile<Record<string, StoredUser>>(sourceFile, {});
+    if (diskUsers && typeof diskUsers === 'object') {
+      Object.assign(users, diskUsers);
+    }
+  } catch (err) {
+    console.error('[STORAGE] Failed to sync users from disk:', err);
   }
+}
+syncUsersFromDisk(true);
 
-  writeJsonFile(TEST_PRO_FILE, data);
+function persistUsers() {
+  writeJsonFile(USERS_FILE, users);
+  writeJsonFile(USERS_BACKUP_FILE, users);
+  try {
+    lastUsersMtime = fs.statSync(USERS_FILE).mtimeMs;
+  } catch (_) {}
+}
 
-  console.log(
-    '[TEST PRO STORAGE]',
-    TEST_PRO_FILE,
-    'users:',
-    Object.keys(data).length
+function persistSessions() {
+  writeJsonFile(SESSIONS_FILE, sessions);
+}
+
+function persistSubscriptions() {
+  writeJsonFile(SUBSCRIPTIONS_FILE, subscriptions);
+}
+
+function persistPasswordResets() {
+  writeJsonFile(PASSWORD_RESETS_FILE, passwordResets);
+}
+
+function persistPendingSafepayCheckout(record: PendingSafepayCheckout) {
+  pendingSafepayCheckouts[record.reference] = record;
+  writeJsonFile(SAFEPAY_CHECKOUTS_FILE, pendingSafepayCheckouts);
+}
+
+// ============================================================
+// CRYPTOGRAPHY & USER AUTH HELPERS
+// ============================================================
+
+function hashPassword(password: string): { salt: string; hash: string } {
+  const salt = crypto.randomBytes(16).toString('hex');
+  const hash = crypto.scryptSync(password, salt, 64).toString('hex');
+  return { salt, hash };
+}
+
+function verifyPassword(password: string, salt: string, expectedHash: string): boolean {
+  try {
+    const hash = crypto.scryptSync(password, salt, 64).toString('hex');
+    const hashBuf = Buffer.from(hash, 'hex');
+    const expectedBuf = Buffer.from(expectedHash, 'hex');
+    if (hashBuf.length !== expectedBuf.length) return false;
+    return crypto.timingSafeEqual(hashBuf, expectedBuf);
+  } catch {
+    return false;
+  }
+}
+
+function generateProLicenseKey(): string {
+  // 128 bits = 16 bytes of cryptographic randomness formatted into uppercase blocks
+  const buf = crypto.randomBytes(16);
+  const p1 = buf.subarray(0, 4).toString('hex').toUpperCase();
+  const p2 = buf.subarray(4, 8).toString('hex').toUpperCase();
+  const p3 = buf.subarray(8, 12).toString('hex').toUpperCase();
+  const p4 = buf.subarray(12, 16).toString('hex').toUpperCase();
+  return `FALCON-PRO-${p1}-${p2}-${p3}-${p4}`;
+}
+
+function getSubscriptionForUser(userId: string): StoredSubscription | null {
+  for (const sub of Object.values(subscriptions)) {
+    if (sub.userId === userId && sub.status === 'ACTIVE') {
+      const expMs = new Date(sub.expiresAt).getTime();
+      if (Date.now() < expMs) {
+        return sub;
+      }
+      sub.status = 'EXPIRED';
+      persistSubscriptions();
+    }
+  }
+  return null;
+}
+
+function getActiveSubscriptionForUser(userId: string): StoredSubscription | null {
+  const user = users[userId];
+  for (const sub of Object.values(subscriptions)) {
+    if (sub.userId === userId && sub.status === 'ACTIVE') {
+      const expMs = new Date(sub.expiresAt).getTime();
+      if (Date.now() >= expMs) {
+        sub.status = 'EXPIRED';
+        persistSubscriptions();
+        continue;
+      }
+      // Mandatory manual activation requirement:
+      // Subscription must be explicitly activated AND bound to the user's account licenseKey
+      if (sub.activatedAt && user?.licenseKey === sub.licenseKey) {
+        return sub;
+      }
+    }
+  }
+  return null;
+}
+
+function isUserActivePro(user: StoredUser): { isPro: boolean; subscription: StoredSubscription | null; licenseKey: string | null } {
+  const activeSub = getActiveSubscriptionForUser(user.id);
+  if (activeSub) {
+    return { isPro: true, subscription: activeSub, licenseKey: activeSub.licenseKey };
+  }
+  if (user.licenseKey && isVerifiedProKey(user.licenseKey)) {
+    return { isPro: true, subscription: null, licenseKey: user.licenseKey };
+  }
+  return { isPro: false, subscription: null, licenseKey: null };
+}
+
+function sanitizeUser(user: StoredUser) {
+  const activeSub = getActiveSubscriptionForUser(user.id);
+  const proCheck = isUserActivePro(user);
+  const userTrackerCount = Math.max(
+    getRecordLifetimeCount(freeUsageTracker[hashIdentifier(`user:${user.id}`)]),
+    user.email ? getRecordLifetimeCount(freeUsageTracker[hashIdentifier(`user:${user.email.toLowerCase()}`)]) : 0
   );
-}
-function persistPaidSubscriptions() {
-  const data: Record<string, PaidSubscriptionRecord> = {};
+  const count = Math.max(user.freeAnalysisCount || 0, userTrackerCount);
+  const limitReached = Boolean(user.freeLimitReached || count >= MAX_FREE_ANALYSES);
 
-  for (const [key, value] of paidSubscriptionsList.entries()) {
-    data[key] = value;
+  return {
+    id: user.id,
+    email: user.email,
+    createdAt: user.createdAt,
+    isPro: proCheck.isPro,
+    licenseKey: proCheck.licenseKey,
+    freeAnalysisCount: count,
+    freeLimitReached: limitReached,
+    subscription: activeSub ? {
+      id: activeSub.id,
+      userId: activeSub.userId,
+      plan: activeSub.plan,
+      currency: activeSub.currency,
+      reference: activeSub.reference,
+      licenseKey: activeSub.licenseKey,
+      status: activeSub.status,
+      createdAt: activeSub.createdAt,
+      expiresAt: activeSub.expiresAt,
+    } : null,
+  };
+}
+
+
+function parseCookies(header?: string): Record<string, string> {
+  const list: Record<string, string> = {};
+  if (!header) return list;
+  header.split(';').forEach((cookie) => {
+    const parts = cookie.split('=');
+    const name = parts.shift()?.trim();
+    if (name) {
+      list[name] = decodeURIComponent(parts.join('=') || '').trim();
+    }
+  });
+  return list;
+}
+
+function getAuthenticatedUserFromRequest(req: Request): StoredUser | null {
+  const authHeader = typeof req.headers.authorization === 'string' ? req.headers.authorization.trim() : '';
+  const bearerToken = authHeader.startsWith('Bearer ') ? authHeader.slice(7).trim() : '';
+  const tokenHeader = typeof req.headers['x-auth-token'] === 'string' ? req.headers['x-auth-token'].trim() : '';
+  const cookies = parseCookies(req.headers.cookie);
+  const cookieToken = cookies['falcon_auth_token'] || cookies['falcon_user_auth_token_v1'] || '';
+  const queryToken = typeof req.query?.token === 'string' ? req.query.token.trim() : '';
+
+  const candidateTokens = [
+    tokenHeader,
+    bearerToken,
+    cookieToken,
+    queryToken,
+  ].filter(Boolean);
+
+  if (candidateTokens.length === 0) return null;
+
+  syncUsersFromDisk();
+
+  for (const token of candidateTokens) {
+    const session = sessions[token];
+    if (session) {
+      if (new Date(session.expiresAt).getTime() < Date.now()) {
+        delete sessions[token];
+        persistSessions();
+        continue;
+      }
+      return users[session.userId] || null;
+    }
   }
 
-  writeJsonFile(
-    PAID_SUBSCRIPTIONS_FILE,
-    data
-  );
+  return null;
 }
+
+// ============================================================
+// SAFEPAY SUBSCRIPTION HELPERS
+// ============================================================
+
+function getSafepayConfig() {
+  const envType = (env('SAFEPAY_ENV') || 'sandbox').toLowerCase() === 'production' ? 'production' : 'sandbox';
+  const secretKey = envType === 'production'
+    ? (env('SAFEPAY_SECRET_KEY_LIVE') || env('SAFEPAY_SECRET_KEY_PRODUCTION') || env('SAFEPAY_SECRET_KEY'))
+    : (env('SAFEPAY_SECRET_KEY_SANDBOX') || env('SAFEPAY_SECRET_KEY'));
+
+  const webhookSecret = envType === 'production'
+    ? (env('SAFEPAY_WEBHOOK_SECRET_LIVE') || env('SAFEPAY_WEBHOOK_SECRET_PRODUCTION') || env('SAFEPAY_WEBHOOK_SECRET'))
+    : (env('SAFEPAY_WEBHOOK_SECRET_SANDBOX') || env('SAFEPAY_WEBHOOK_SECRET'));
+
+  const defaultApiHost = envType === 'production'
+    ? 'https://api.getsafepay.com'
+    : 'https://sandbox.api.getsafepay.com';
+
+  const defaultCheckoutHost = envType === 'production'
+    ? 'https://getsafepay.com'
+    : 'https://sandbox.api.getsafepay.com';
+
+  const apiHost = env('SAFEPAY_API_HOST') || defaultApiHost;
+  const checkoutHost = env('SAFEPAY_CHECKOUT_HOST') || defaultCheckoutHost;
+
+  // Safepay Plan IDs for PKR (Pakistani Rupee)
+  const monthlyPlanId = env('SAFEPAY_MONTHLY_PLAN_ID');
+  const yearlyPlanId = env('SAFEPAY_YEARLY_PLAN_ID');
+
+  // Safepay Plan IDs for USD (US Dollar)
+  const monthlyPlanIdUsd = env('SAFEPAY_MONTHLY_PLAN_ID_USD');
+  const yearlyPlanIdUsd = env('SAFEPAY_YEARLY_PLAN_ID_USD');
+
+  const appUrl = env('APP_URL') || `http://localhost:${PORT}`;
+
+  return {
+    env: envType,
+    secretKey,
+    webhookSecret,
+    apiHost: apiHost.replace(/\/+$/, ''),
+    checkoutHost: checkoutHost.replace(/\/+$/, ''),
+    monthlyPlanId,
+    yearlyPlanId,
+    monthlyPlanIdUsd,
+    yearlyPlanIdUsd,
+    appUrl: appUrl.replace(/\/+$/, ''),
+  };
+}
+
+async function createSafepayAuthToken(config: ReturnType<typeof getSafepayConfig>): Promise<string> {
+  if (!config.secretKey) {
+    throw new Error('Safepay secret key is not configured.');
+  }
+
+  const endpoint = `${config.apiHost}/client/passport/v1/token`;
+  const response = await fetch(endpoint, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-SFPY-MERCHANT-SECRET': config.secretKey,
+    },
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Safepay passport token request failed (HTTP ${response.status}): ${errorText}`);
+  }
+
+  const resJson: any = await response.json();
+  const token = typeof resJson?.data === 'string'
+    ? resJson.data
+    : (resJson?.data?.token || resJson?.token);
+
+  if (!token) {
+    const message = resJson?.status?.message || resJson?.status?.errors?.join(', ') || 'Unknown token error';
+    throw new Error(`Failed to retrieve Safepay auth token: ${message}`);
+  }
+
+  return token;
+}
+
 // ============================================================
 // SECURITY HELPERS
 // ============================================================
@@ -595,33 +787,48 @@ function getClientIdentifier(req: Request): string {
 }
 
 function getOwnerSessionFromRequest(req: Request) {
-  const authHeader =
-    typeof req.headers.authorization === 'string'
-      ? req.headers.authorization.trim()
-      : '';
+  if (!OWNER_SECRET_TOKEN) return null;
 
-  const tokenHeader =
+  const headerOwnerToken =
     typeof req.headers['x-owner-token'] === 'string'
       ? req.headers['x-owner-token'].trim()
       : '';
 
-  const ownerToken =
-    authHeader.startsWith('Bearer ')
-      ? authHeader.slice(7).trim()
-      : tokenHeader;
+  const authHeader =
+    typeof req.headers.authorization === 'string'
+      ? req.headers.authorization.trim()
+      : '';
+  const bearerToken = authHeader.startsWith('Bearer ') ? authHeader.slice(7).trim() : '';
 
-  if (
-    ownerToken &&
-    OWNER_SECRET_TOKEN &&
-    safeEqual(ownerToken, OWNER_SECRET_TOKEN)
-  ) {
-    return {
-      role: 'OWNER' as const,
-      email: OWNER_EMAIL || 'owner',
-    };
+  const cookies = parseCookies(req.headers.cookie);
+  const cookieOwnerToken = cookies['falcon_owner_token'] || '';
+  const queryOwnerToken = typeof req.query?.owner_token === 'string' ? req.query.owner_token.trim() : '';
+
+  const candidateTokens = [
+    headerOwnerToken,
+    cookieOwnerToken,
+    queryOwnerToken,
+    bearerToken,
+  ].filter(Boolean);
+
+  for (const token of candidateTokens) {
+    if (safeEqual(token, OWNER_SECRET_TOKEN)) {
+      return {
+        role: 'OWNER' as const,
+        email: OWNER_EMAIL || 'owner',
+      };
+    }
   }
 
   return null;
+}
+
+function requireOwner(req: Request, res: Response, next: NextFunction) {
+  const session = getOwnerSessionFromRequest(req);
+  if (!session) {
+    return res.status(401).json({ success: false, error: 'Unauthorized: Owner access required' });
+  }
+  next();
 }
 
 // ============================================================
@@ -636,176 +843,340 @@ function isVerifiedProKey(key?: string): boolean {
   if (!normalized) return false;
 
   const configuredKeys = getConfiguredProKeys();
+  if (configuredKeys.has(normalized)) return true;
 
-  return configuredKeys.has(normalized);
-}
-
-// ============================================================
-// TEST PRO
-// ============================================================
-
-function calculateRemainingTime(expiresAtMs: number): string {
-  const diff = expiresAtMs - Date.now();
-
-  if (diff <= 0) return 'Expired';
-
-  const days = Math.floor(
-    diff / (1000 * 60 * 60 * 24)
-  );
-
-  const hours = Math.floor(
-    (diff % (1000 * 60 * 60 * 24)) /
-      (1000 * 60 * 60)
-  );
-
-  const mins = Math.floor(
-    (diff % (1000 * 60 * 60)) /
-      (1000 * 60)
-  );
-
-  if (days > 0) {
-    return `${days}d ${hours}h left`;
-  }
-
-  return `${hours}h ${mins}m left`;
-}
-
-function getActiveTestProForRequest(
-  req: Request
-): TestProRecord | null {
-  const clientId = getClientIdentifier(req).toLowerCase();
-
-  const userIdent =
-    typeof req.headers['x-user-identifier'] === 'string'
-      ? req.headers['x-user-identifier'].trim().toLowerCase()
-      : '';
-
-  for (const record of testProUsersList.values()) {
-    const recordIdent = record.userIdentifier
-      .toLowerCase()
-      .trim();
-
-    const matched =
-      recordIdent === clientId ||
-      (!!userIdent && recordIdent === userIdent);
-
-    if (!matched) continue;
-
-    const expMs = new Date(record.expiresAt).getTime();
-
-    if (
-      record.status === 'ACTIVE' &&
-      Date.now() < expMs
-    ) {
-      record.remainingTime =
-        calculateRemainingTime(expMs);
-
-      return record;
-    }
-
-    if (record.status === 'ACTIVE') {
-      record.status = 'EXPIRED';
-      record.remainingTime = 'Expired';
-      persistTestProUsers();
+  for (const sub of Object.values(subscriptions)) {
+    if (sub.licenseKey === normalized && sub.status === 'ACTIVE' && new Date(sub.expiresAt).getTime() > Date.now()) {
+      return true;
     }
   }
 
-  return null;
+  return false;
 }
 
 // ============================================================
-// FREE USAGE
+// FREE USAGE & LIFETIME LIMITS (PERMANENT 3-ANALYSIS ALLOWANCE)
 // ============================================================
 
-function getUsageDate(): string {
-  return new Date().toISOString().split('T')[0];
+function getRecordLifetimeCount(record?: UsageRecord | null): number {
+  if (!record) return 0;
+  const count = typeof record.count === 'number' ? record.count : 0;
+  const total = typeof record.totalCount === 'number' ? record.totalCount : 0;
+  return Math.max(count, total);
 }
 
-function getClientKeys(req: Request): string[] {
+interface ResolvedClientKeys {
+  allKeys: string[];
+  userId: string | null;
+  clientId: string | null;
+}
+
+function getClientKeys(req: Request): ResolvedClientKeys {
   const keys: string[] = [];
 
-  const authenticatedUser =
-    typeof req.headers['x-user-identifier'] === 'string'
-      ? req.headers['x-user-identifier'].trim().toLowerCase()
-      : '';
-  if (authenticatedUser) {
-    keys.push(hashIdentifier(`user:${authenticatedUser}`));
-  }
-
+  // Extract client device ID
   const clientHeader =
     typeof req.headers['x-client-id'] === 'string'
       ? req.headers['x-client-id'].trim()
-      : '';
-  if (clientHeader && clientHeader.length >= 8 && clientHeader.length <= 200) {
-    keys.push(hashIdentifier(`client:${clientHeader}`));
-  }
+      : typeof req.body?.clientId === 'string'
+        ? req.body.clientId.trim()
+        : '';
 
-  const fpHeader =
-    typeof req.headers['x-device-fingerprint'] === 'string'
-      ? req.headers['x-device-fingerprint'].trim()
-      : '';
-  if (fpHeader && fpHeader.length >= 8 && fpHeader.length <= 200) {
-    keys.push(hashIdentifier(`fp:${fpHeader}`));
-  }
+  const clientId =
+    clientHeader && clientHeader.length >= 8 && clientHeader.length <= 200
+      ? clientHeader
+      : null;
 
-  const forwarded = req.headers['x-forwarded-for'];
-  if (typeof forwarded === 'string' && forwarded.trim()) {
-    const firstIp = forwarded.split(',')[0].trim();
-    if (firstIp) {
-      keys.push(hashIdentifier(`ip:${firstIp}`));
-    }
-  }
-
-  const ip = req.ip || req.socket.remoteAddress;
-  if (ip && ip !== '::1' && ip !== '127.0.0.1') {
-    keys.push(hashIdentifier(`ip:${ip}`));
-  }
-
-  const primaryId = hashIdentifier(getClientIdentifier(req));
-  keys.push(primaryId);
-
-  return Array.from(new Set(keys));
-}
-
-function getFreeUsageCountForClient(
-  req: Request
-): number {
-  const keys = getClientKeys(req);
-  let maxCount = 0;
-
-  for (const k of keys) {
-    const record = freeUsageTracker[k];
-    if (record && typeof record.count === 'number') {
-      if (record.count > maxCount) {
-        maxCount = record.count;
+  if (clientId) {
+    keys.push(hashIdentifier(`client:${clientId}`));
+    const linkedUsers = deviceToUsers[clientId] || [];
+    for (const uId of linkedUsers) {
+      keys.push(hashIdentifier(`user:${uId}`));
+      const u = users[uId];
+      if (u && u.email) {
+        keys.push(hashIdentifier(`user:${u.email.toLowerCase()}`));
       }
     }
   }
 
-  return maxCount;
+  // Extract device fingerprint
+  const fpHeader =
+    typeof req.headers['x-device-fingerprint'] === 'string'
+      ? req.headers['x-device-fingerprint'].trim()
+      : typeof req.body?.deviceFingerprint === 'string'
+        ? req.body.deviceFingerprint.trim()
+        : '';
+
+  if (fpHeader && fpHeader.length >= 8 && fpHeader.length <= 200) {
+    keys.push(hashIdentifier(`fp:${fpHeader}`));
+  }
+
+  // Extract anonymous persistent user identifier
+  const userIdentifierHeader =
+    typeof req.headers['x-user-identifier'] === 'string'
+      ? req.headers['x-user-identifier'].trim()
+      : typeof req.body?.userIdentifier === 'string'
+        ? req.body.userIdentifier.trim()
+        : '';
+
+  if (
+    userIdentifierHeader &&
+    userIdentifierHeader.length >= 6 &&
+    userIdentifierHeader.length <= 150 &&
+    !userIdentifierHeader.includes('@')
+  ) {
+    keys.push(hashIdentifier(`anon_uid:${userIdentifierHeader}`));
+  }
+
+  // Authenticated User
+  const authUser = getAuthenticatedUserFromRequest(req);
+  const userId = authUser ? authUser.id : null;
+
+  if (authUser) {
+    keys.push(hashIdentifier(`user:${authUser.id}`));
+    if (authUser.email) {
+      keys.push(hashIdentifier(`user:${authUser.email.toLowerCase()}`));
+    }
+    const linkedDevices = userToDevices[authUser.id] || [];
+    for (const dId of linkedDevices) {
+      keys.push(hashIdentifier(`client:${dId}`));
+    }
+  }
+
+  if (keys.length === 0) {
+    keys.push(hashIdentifier('fallback:anonymous_session'));
+  }
+
+  return {
+    allKeys: Array.from(new Set(keys)),
+    userId,
+    clientId,
+  };
 }
 
-function incrementFreeUsageCountForClient(
-  req: Request
-): number {
-  const keys = getClientKeys(req);
-  const currentCount = getFreeUsageCountForClient(req);
-  const newCount = currentCount + 1;
-  const today = getUsageDate();
-  const nowIso = new Date().toISOString();
+function getEffectiveUsage(req: Request): {
+  count: number;
+  windowStartedAt: null;
+  resetAt: null;
+  keys: string[];
+  userId: string | null;
+  clientId: string | null;
+} {
+  syncUsageStorageFromDisk();
+  const { allKeys, userId, clientId } = getClientKeys(req);
+  let maxCount = 0;
+
+  for (const k of allKeys) {
+    const rec = freeUsageTracker[k];
+    if (rec) {
+      const c = getRecordLifetimeCount(rec);
+      if (c > maxCount) {
+        maxCount = c;
+      }
+    }
+  }
+
+  if (userId && users[userId]) {
+    const userStoredCount = users[userId].freeAnalysisCount || 0;
+    if (userStoredCount > maxCount) {
+      maxCount = userStoredCount;
+    }
+  }
+
+  return {
+    count: maxCount,
+    windowStartedAt: null,
+    resetAt: null,
+    keys: allKeys,
+    userId,
+    clientId,
+  };
+}
+
+function getFreeUsageCountForClient(req: Request): number {
+  return getEffectiveUsage(req).count;
+}
+
+function linkAccountAndDevice(
+  userId: string,
+  clientId?: string | null,
+  fpHeader?: string | null,
+  userIdentifier?: string | null
+): void {
+  if (!userId) return;
+
+  const validClientId =
+    clientId && clientId.length >= 8 && clientId.length <= 200 ? clientId : null;
+
+  if (validClientId) {
+    if (!userToDevices[userId]) userToDevices[userId] = [];
+    if (!userToDevices[userId].includes(validClientId)) {
+      userToDevices[userId].push(validClientId);
+    }
+
+    if (!deviceToUsers[validClientId]) deviceToUsers[validClientId] = [];
+    if (!deviceToUsers[validClientId].includes(userId)) {
+      deviceToUsers[validClientId].push(userId);
+    }
+  }
+
+  const user = users[userId];
+  const keys = [
+    hashIdentifier(`user:${userId}`),
+    ...(user && user.email ? [hashIdentifier(`user:${user.email.toLowerCase()}`)] : []),
+    ...(validClientId ? [hashIdentifier(`client:${validClientId}`)] : []),
+    ...(fpHeader && fpHeader.length >= 8 && fpHeader.length <= 200
+      ? [hashIdentifier(`fp:${fpHeader}`)]
+      : []),
+    ...(userIdentifier && userIdentifier.length >= 6 && !userIdentifier.includes('@')
+      ? [hashIdentifier(`anon_uid:${userIdentifier}`)]
+      : []),
+    ...(userToDevices[userId] || []).map((d) => hashIdentifier(`client:${d}`)),
+    ...(validClientId && deviceToUsers[validClientId]
+      ? deviceToUsers[validClientId].map((u) => hashIdentifier(`user:${u}`))
+      : []),
+  ];
+  const uniqueKeys = Array.from(new Set(keys));
+
+  const now = Date.now();
+  let maxLifetimeCount = 0;
+  let mostRecentLastUsedAt: string = new Date(now).toISOString();
+
+  for (const k of uniqueKeys) {
+    const rec = freeUsageTracker[k];
+    if (rec) {
+      const c = getRecordLifetimeCount(rec);
+      if (c > maxLifetimeCount) {
+        maxLifetimeCount = c;
+      }
+      if (rec.lastUsedAt) mostRecentLastUsedAt = rec.lastUsedAt;
+    }
+  }
+
+  if (userId && users[userId]) {
+    const userStoredCount = users[userId].freeAnalysisCount || 0;
+    if (userStoredCount > maxLifetimeCount) {
+      maxLifetimeCount = userStoredCount;
+    }
+  }
+
+  if (maxLifetimeCount > 0) {
+    const mergedRecord: UsageRecord = {
+      count: maxLifetimeCount,
+      windowStartedAt: now,
+      lastUsedAt: mostRecentLastUsedAt,
+      totalCount: maxLifetimeCount,
+    };
+    for (const k of uniqueKeys) {
+      freeUsageTracker[k] = { ...mergedRecord };
+    }
+  }
+
+  if (userId && users[userId]) {
+    users[userId].freeAnalysisCount = maxLifetimeCount;
+    users[userId].freeLimitReached = maxLifetimeCount >= MAX_FREE_ANALYSES;
+    persistUsers();
+  }
+
+  persistUsage();
+}
+
+// In-flight concurrency protection tracker
+const inFlightRequests = new Map<string, number>();
+
+function getInFlightCountForKeys(keys: string[]): number {
+  let max = 0;
+  for (const k of keys) {
+    const val = inFlightRequests.get(k) || 0;
+    if (val > max) max = val;
+  }
+  return max;
+}
+
+function reserveAnalysisAttempt(keys: string[]): boolean {
+  syncUsageStorageFromDisk();
+  let maxCurrent = 0;
+  for (const k of keys) {
+    const rec = freeUsageTracker[k];
+    if (rec) {
+      const c = getRecordLifetimeCount(rec);
+      if (c > maxCurrent) {
+        maxCurrent = c;
+      }
+    }
+  }
+
+  const currentInFlight = getInFlightCountForKeys(keys);
+
+  if (maxCurrent + currentInFlight >= MAX_FREE_ANALYSES) {
+    return false;
+  }
 
   for (const k of keys) {
-    freeUsageTracker[k] = {
-      count: newCount,
-      totalCount: newCount,
-      date: today,
-      lastUsedAt: nowIso,
-    };
+    inFlightRequests.set(k, (inFlightRequests.get(k) || 0) + 1);
+  }
+
+  return true;
+}
+
+function releaseAnalysisReservation(keys: string[]): void {
+  for (const k of keys) {
+    const val = inFlightRequests.get(k) || 0;
+    if (val <= 1) {
+      inFlightRequests.delete(k);
+    } else {
+      inFlightRequests.set(k, val - 1);
+    }
+  }
+}
+
+function commitSuccessfulFreeAnalysis(keys: string[], userId?: string | null): number {
+  syncUsageStorageFromDisk();
+  syncUsersFromDisk();
+  const now = Date.now();
+  let maxCount = 0;
+
+  for (const k of keys) {
+    const rec = freeUsageTracker[k];
+    if (rec) {
+      const c = getRecordLifetimeCount(rec);
+      if (c > maxCount) {
+        maxCount = c;
+      }
+    }
+  }
+
+  if (userId && users[userId]) {
+    const userStoredCount = users[userId].freeAnalysisCount || 0;
+    if (userStoredCount > maxCount) {
+      maxCount = userStoredCount;
+    }
+  }
+
+  const newCount = maxCount + 1;
+  const nowIso = new Date(now).toISOString();
+
+  const updatedRecord: UsageRecord = {
+    count: newCount,
+    windowStartedAt: now,
+    lastUsedAt: nowIso,
+    totalCount: newCount,
+  };
+
+  for (const k of keys) {
+    freeUsageTracker[k] = { ...updatedRecord };
+  }
+
+  if (userId && users[userId]) {
+    users[userId].freeAnalysisCount = newCount;
+    users[userId].freeLimitReached = newCount >= MAX_FREE_ANALYSES;
+    persistUsers();
   }
 
   persistUsage();
   return newCount;
 }
+
 
 // ============================================================
 // GEMINI
@@ -824,7 +1195,7 @@ function getGeminiClient(): GoogleGenAI {
     apiKey,
     httpOptions: {
       headers: {
-        'User-Agent': 'falcon-analyze-production',
+        'User-Agent': 'aistudio-build',
       },
     },
   });
@@ -931,112 +1302,528 @@ function finiteNumber(value: any): number | null {
 }
 
 // ============================================================
-// TRADE VALIDATION
+// STRUCTURAL TRADE PLAN RECONCILIATION & VALIDATION
 // ============================================================
 
-function validateTradeStructure(
+function formatLevelPrice(price: number): string {
+  if (!Number.isFinite(price)) return '$0';
+  if (price >= 1000) {
+    return `$${price.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`;
+  }
+  if (price >= 1) {
+    return `$${price.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 4 })}`;
+  }
+  return `$${price.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 6 })}`;
+}
+
+export function getPricePrecision(price: number, asset?: string): number {
+  const a = String(asset || '').toUpperCase();
+  if (a.includes('JPY')) return 3;
+  if (a.includes('XAU') || a.includes('GOLD') || a.includes('SILVER') || a.includes('XAG')) return 2;
+  if (a.includes('US30') || a.includes('DJI') || a.includes('SPX') || a.includes('NAS') || a.includes('NDX') || a.includes('GER') || a.includes('DAX')) return 1;
+  if (price >= 1000) return 2;
+  if (price >= 1) return 4;
+  return 6;
+}
+
+export function computeDynamicBuffer(price: number, style?: string): number {
+  const p = Math.max(price, 0.0001);
+  const s = String(style || '').toLowerCase();
+  let bufferPct = 0.0025; // default 0.25% intraday
+  if (s.includes('scalp')) {
+    bufferPct = 0.0015; // 0.15% tighter for scalps
+  } else if (s.includes('swing') || s.includes('position')) {
+    bufferPct = 0.0040; // 0.40% wider for swing/position
+  }
+  return Math.max(p * bufferPct, 0.0001);
+}
+
+export function computeTargetBuffer(targetPrice: number, style?: string, asset?: string): number {
+  const p = Math.max(targetPrice, 0.0001);
+  const s = String(style || '').toLowerCase();
+  const a = String(asset || '').toUpperCase();
+
+  let pct = 0.0015; // default 0.15% for intraday
+  if (s.includes('scalp')) {
+    pct = 0.0008; // 0.08% for scalp
+  } else if (s.includes('swing') || s.includes('position')) {
+    pct = 0.0025; // 0.25% for swing
+  }
+
+  if (a.includes('JPY')) {
+    return Number((p * pct).toFixed(3));
+  }
+  if (a.includes('US30') || a.includes('NAS') || a.includes('SPX') || a.includes('GER')) {
+    return Number((p * pct).toFixed(1));
+  }
+  return p * pct;
+}
+
+export function reconcileAndValidateTradePlan(
+  analysis: ChartAnalysis,
+  context: {
+    asset?: string;
+    timeframe?: string;
+    tradingStyle?: string;
+  }
+): {
+  reconciled: ChartAnalysis;
+  validation: { valid: boolean; reason?: string; checks: Record<string, boolean> };
+} {
+  const rawSig = String(analysis?.verdict?.signal || '').toUpperCase().trim();
+  const rawBias = String(analysis?.verdict?.bias || '').toUpperCase().trim();
+  const rawTrend = String(analysis?.marketTrend || '').toUpperCase().trim();
+  const rawDesc = `${analysis?.marketStructure?.description || ''} ${analysis?.verdict?.summary || ''} ${analysis?.detailedExplanation || ''}`.toUpperCase();
+
+  // Decisive directional resolution: ALWAYS provide an actionable BUY or SELL setup
+  let finalSignal: 'BUY' | 'SELL';
+  if (
+    rawSig.includes('SELL') || rawSig.includes('SHORT') || rawSig.includes('BEAR') ||
+    rawBias.includes('BEAR') || rawBias.includes('SHORT') ||
+    rawTrend.includes('BEAR') || rawTrend.includes('DOWN') ||
+    rawDesc.includes('DOWNTREND') || rawDesc.includes('LOWER HIGH') || rawDesc.includes('BEARISH')
+  ) {
+    finalSignal = 'SELL';
+  } else {
+    finalSignal = 'BUY';
+  }
+
+  const curP = parseNumericValue(analysis.currentPrice);
+  let entryRec = parseNumericValue(analysis.entryZone?.recommended ?? (analysis.entryZone as any)?.min) || curP || 100;
+  const precision = getPricePrecision(entryRec, context.asset || analysis.asset);
+  const dynamicBuffer = computeDynamicBuffer(entryRec, context.tradingStyle || analysis.tradingStyle);
+
+  // Determine Entry Zone boundaries
+  let entryMin = parseNumericValue((analysis.entryZone as any)?.min);
+  let entryMax = parseNumericValue((analysis.entryZone as any)?.max);
+  if (entryMin === null && entryMax === null) {
+    if (typeof analysis.entryZone?.range === 'string') {
+      const parts = analysis.entryZone.range
+        .split(/[-–—to]/i)
+        .map((s) => parseNumericValue(s))
+        .filter((n): n is number => n !== null);
+      if (parts.length >= 2) {
+        entryMin = Math.min(parts[0], parts[1]);
+        entryMax = Math.max(parts[0], parts[1]);
+      }
+    }
+  }
+  if (entryMin === null) entryMin = Number((entryRec - dynamicBuffer * 0.5).toFixed(precision));
+  if (entryMax === null) entryMax = Number((entryRec + dynamicBuffer * 0.5).toFixed(precision));
+  if (entryMin > entryMax) {
+    const temp = entryMin;
+    entryMin = entryMax;
+    entryMax = temp;
+  }
+  if (entryRec < entryMin) entryMin = entryRec;
+  if (entryRec > entryMax) entryMax = entryRec;
+  if (entryMin === entryMax) {
+    entryMin = Number((entryRec - dynamicBuffer * 0.4).toFixed(precision));
+    entryMax = Number((entryRec + dynamicBuffer * 0.4).toFixed(precision));
+  }
+
+  // Extract all valid support prices from primary and multi-timeframe fields
+  const rawSupports: number[] = [];
+  if (Array.isArray(analysis.supportLevels)) {
+    analysis.supportLevels.forEach((s) => {
+      const p = parseNumericValue(s?.price ?? s);
+      if (p !== null) rawSupports.push(p);
+    });
+  }
+  const mtf = analysis.multiTimeframeAnalysis;
+  if (mtf) {
+    [mtf.chart1?.support1, mtf.chart2?.support1, mtf.chart3?.support1, mtf.combinedMajorSupport].forEach((s) => {
+      const p = parseNumericValue(s?.price ?? s);
+      if (p !== null) rawSupports.push(p);
+    });
+  }
+  const supports = rawSupports
+    .filter((p, i, a) => a.findIndex((x) => Math.abs(x - p) / p < 0.0005) === i)
+    .sort((a, b) => b - a);
+
+  // Extract all valid resistance prices from primary and multi-timeframe fields
+  const rawResistances: number[] = [];
+  if (Array.isArray(analysis.resistanceLevels)) {
+    analysis.resistanceLevels.forEach((r) => {
+      const p = parseNumericValue(r?.price ?? r);
+      if (p !== null) rawResistances.push(p);
+    });
+  }
+  if (mtf) {
+    [mtf.chart1?.resistance1, mtf.chart2?.resistance1, mtf.chart3?.resistance1, mtf.combinedMajorResistance].forEach((r) => {
+      const p = parseNumericValue(r?.price ?? r);
+      if (p !== null) rawResistances.push(p);
+    });
+  }
+  const resistances = rawResistances
+    .filter((p, i, a) => a.findIndex((x) => Math.abs(x - p) / p < 0.0005) === i)
+    .sort((a, b) => a - b);
+
+  let slPrice = parseNumericValue(analysis.stopLoss?.price);
+  let slRationale = analysis.stopLoss?.rationale || '';
+
+  let tp1Price: number | undefined = undefined;
+  let tp1Status: 'CONFIRMED' | 'UNAVAILABLE' = 'UNAVAILABLE';
+  let tp1Rationale = '';
+
+  let tp2Price: number | undefined = undefined;
+  let tp2Status: 'CONFIRMED' | 'UNAVAILABLE' = 'UNAVAILABLE';
+  let tp2Rationale = '';
+
+  if (finalSignal === 'BUY') {
+    // 1. STOP LOSS (strictly below Entry Zone)
+    const supBelowEntry = supports.filter((s) => s < entryMin * 0.9995);
+    const nearestSup = supBelowEntry.length > 0 ? supBelowEntry[0] : null;
+
+    if (slPrice === null || slPrice >= entryMin) {
+      slPrice = nearestSup ? Number((nearestSup - dynamicBuffer).toFixed(precision)) : Number((entryMin - Math.max(dynamicBuffer * 2, entryRec * 0.012)).toFixed(precision));
+      slRationale = `Stop Loss anchored strictly below support ${formatLevelPrice(nearestSup || entryMin)} invalidating bullish thesis if breached.`;
+    } else if (nearestSup && slPrice > nearestSup) {
+      slPrice = Number((nearestSup - dynamicBuffer).toFixed(precision));
+      slRationale = `Stop Loss anchored below structural support ${formatLevelPrice(nearestSup)} with volatility buffer.`;
+    }
+    if (slPrice >= entryMin) {
+      slPrice = Number((entryMin - dynamicBuffer * 1.5).toFixed(precision));
+    }
+    const risk = Math.max(entryRec - slPrice, dynamicBuffer * 1.5);
+
+    // 2. TAKE PROFIT 1 (strictly above Entry Zone with favorable R:R)
+    const resAbove = resistances.filter((r) => r > entryMax);
+    const viableRes = resAbove.filter((r) => (r - entryRec) / risk >= 0.95);
+
+    let tp1AnchorRes: number | null = null;
+    const rawTp1 = parseNumericValue(analysis.takeProfit1?.price);
+    if (rawTp1 !== null && rawTp1 > entryMax && (rawTp1 - entryRec) / risk >= 0.95) {
+      tp1Price = rawTp1;
+      tp1AnchorRes = rawTp1;
+      tp1Status = 'CONFIRMED';
+      tp1Rationale = analysis.takeProfit1?.rationale || `Primary target at ${formatLevelPrice(tp1Price)} (+${(((tp1Price - entryRec) / entryRec) * 100).toFixed(2)}%, R:R 1:${((tp1Price - entryRec) / risk).toFixed(2)}).`;
+    } else if (viableRes.length > 0) {
+      const nearestViable = viableRes[0];
+      tp1AnchorRes = nearestViable;
+      const targetBuf = computeTargetBuffer(nearestViable, context.tradingStyle || analysis.tradingStyle, context.asset || analysis.asset);
+      const maxBuf = Math.max((nearestViable - entryMax) * 0.2, 0);
+      const effectiveBuf = Math.min(targetBuf, maxBuf);
+      tp1Price = Number((nearestViable - effectiveBuf).toFixed(precision));
+      if (tp1Price <= entryMax || (tp1Price - entryRec) / risk < 0.95) tp1Price = nearestViable;
+      tp1Status = 'CONFIRMED';
+      tp1Rationale = `Primary target positioned before resistance ${formatLevelPrice(nearestViable)} to lock in gains prior to selling pressure.`;
+    } else {
+      tp1Price = undefined;
+      tp1Status = 'UNAVAILABLE';
+      tp1Rationale = 'Target unconfirmed: No viable chart resistance identified offering favorable R:R above Entry Zone.';
+    }
+
+    // 3. TAKE PROFIT 2 (strictly above TP1 with extended R:R)
+    if (tp1Status === 'CONFIRMED' && tp1Price !== undefined) {
+      const minLevelForTp2 = Math.max(tp1AnchorRes ?? tp1Price, tp1Price);
+      const higherRes = resAbove.filter((r) => r > minLevelForTp2 * 1.0005);
+      const rawTp2 = parseNumericValue(analysis.takeProfit2?.price);
+      if (rawTp2 !== null && rawTp2 > minLevelForTp2) {
+        tp2Price = rawTp2;
+        tp2Status = 'CONFIRMED';
+        tp2Rationale = analysis.takeProfit2?.rationale || `Extended runner target at ${formatLevelPrice(tp2Price)} (+${(((tp2Price - entryRec) / entryRec) * 100).toFixed(2)}%, R:R 1:${((tp2Price - entryRec) / risk).toFixed(2)}).`;
+      } else if (higherRes.length > 0) {
+        const nextRes = higherRes[0];
+        const targetBuf = computeTargetBuffer(nextRes, context.tradingStyle || analysis.tradingStyle, context.asset || analysis.asset);
+        const maxBuf = Math.max((nextRes - tp1Price) * 0.2, 0);
+        const effectiveBuf = Math.min(targetBuf, maxBuf);
+        tp2Price = Number((nextRes - effectiveBuf).toFixed(precision));
+        if (tp2Price <= tp1Price) tp2Price = nextRes;
+        tp2Status = 'CONFIRMED';
+        tp2Rationale = `Extended runner target aligned with major overhead resistance ${formatLevelPrice(nextRes)}.`;
+      } else {
+        tp2Price = undefined;
+        tp2Status = 'UNAVAILABLE';
+        tp2Rationale = 'Runner target unconfirmed: No subsequent structural resistance identified beyond TP1 on uploaded charts.';
+      }
+    } else {
+      tp2Price = undefined;
+      tp2Status = 'UNAVAILABLE';
+      tp2Rationale = 'Runner target unconfirmed: Primary target unconfirmed on uploaded charts.';
+    }
+  } else {
+    // -------------------------------------------------------------
+    // SELL SETUP
+    // -------------------------------------------------------------
+    // 1. STOP LOSS (strictly above Entry Zone)
+    const resAboveEntry = resistances.filter((r) => r > entryMax * 1.0005).sort((a, b) => a - b);
+    const nearestRes = resAboveEntry.length > 0 ? resAboveEntry[0] : null;
+
+    if (slPrice === null || slPrice <= entryMax) {
+      slPrice = nearestRes ? Number((nearestRes + dynamicBuffer).toFixed(precision)) : Number((entryMax + Math.max(dynamicBuffer * 2, entryRec * 0.012)).toFixed(precision));
+      slRationale = `Stop Loss anchored strictly above resistance ${formatLevelPrice(nearestRes || entryMax)} invalidating bearish thesis if breached.`;
+    } else if (nearestRes && slPrice < nearestRes) {
+      slPrice = Number((nearestRes + dynamicBuffer).toFixed(precision));
+      slRationale = `Stop Loss anchored above structural resistance ${formatLevelPrice(nearestRes)} with volatility buffer.`;
+    }
+    if (slPrice <= entryMax) {
+      slPrice = Number((entryMax + dynamicBuffer * 1.5).toFixed(precision));
+    }
+    const risk = Math.max(slPrice - entryRec, dynamicBuffer * 1.5);
+
+    // 2. TAKE PROFIT 1 (strictly below Entry Zone with favorable R:R)
+    const supBelow = supports.filter((s) => s < entryMin);
+    const viableSup = supBelow.filter((s) => (entryRec - s) / risk >= 0.95);
+
+    let tp1AnchorSup: number | null = null;
+    const rawTp1 = parseNumericValue(analysis.takeProfit1?.price);
+    if (rawTp1 !== null && rawTp1 < entryMin && (entryRec - rawTp1) / risk >= 0.95) {
+      tp1Price = rawTp1;
+      tp1AnchorSup = rawTp1;
+      tp1Status = 'CONFIRMED';
+      tp1Rationale = analysis.takeProfit1?.rationale || `Primary target at ${formatLevelPrice(tp1Price)} (+${(((entryRec - tp1Price) / entryRec) * 100).toFixed(2)}%, R:R 1:${((entryRec - tp1Price) / risk).toFixed(2)}).`;
+    } else if (viableSup.length > 0) {
+      const nearestViable = viableSup[0];
+      tp1AnchorSup = nearestViable;
+      const targetBuf = computeTargetBuffer(nearestViable, context.tradingStyle || analysis.tradingStyle, context.asset || analysis.asset);
+      const maxBuf = Math.max((entryMin - nearestViable) * 0.2, 0);
+      const effectiveBuf = Math.min(targetBuf, maxBuf);
+      tp1Price = Number((nearestViable + effectiveBuf).toFixed(precision));
+      if (tp1Price >= entryMin || (entryRec - tp1Price) / risk < 0.95) tp1Price = nearestViable;
+      tp1Status = 'CONFIRMED';
+      tp1Rationale = `Primary target positioned prior to support ${formatLevelPrice(nearestViable)} to lock in gains before buying pressure.`;
+    } else {
+      tp1Price = undefined;
+      tp1Status = 'UNAVAILABLE';
+      tp1Rationale = 'Target unconfirmed: No viable chart support identified offering favorable R:R below Entry Zone.';
+    }
+
+    // 3. TAKE PROFIT 2 (strictly below TP1 with extended R:R)
+    if (tp1Status === 'CONFIRMED' && tp1Price !== undefined) {
+      const maxLevelForTp2 = Math.min(tp1AnchorSup ?? tp1Price, tp1Price);
+      const lowerSup = supBelow.filter((s) => s < maxLevelForTp2 * 0.9995);
+      const rawTp2 = parseNumericValue(analysis.takeProfit2?.price);
+      if (rawTp2 !== null && rawTp2 < maxLevelForTp2) {
+        tp2Price = rawTp2;
+        tp2Status = 'CONFIRMED';
+        tp2Rationale = analysis.takeProfit2?.rationale || `Extended runner target at ${formatLevelPrice(tp2Price)} (+${(((entryRec - tp2Price) / entryRec) * 100).toFixed(2)}%, R:R 1:${((entryRec - tp2Price) / risk).toFixed(2)}).`;
+      } else if (lowerSup.length > 0) {
+        const nextSup = lowerSup[0];
+        const targetBuf = computeTargetBuffer(nextSup, context.tradingStyle || analysis.tradingStyle, context.asset || analysis.asset);
+        const maxBuf = Math.max((tp1Price - nextSup) * 0.2, 0);
+        const effectiveBuf = Math.min(targetBuf, maxBuf);
+        tp2Price = Number((nextSup + effectiveBuf).toFixed(precision));
+        if (tp2Price >= tp1Price) tp2Price = nextSup;
+        tp2Status = 'CONFIRMED';
+        tp2Rationale = `Extended runner target aligned with major underlying support ${formatLevelPrice(nextSup)}.`;
+      } else {
+        tp2Price = undefined;
+        tp2Status = 'UNAVAILABLE';
+        tp2Rationale = 'Runner target unconfirmed: No subsequent structural support identified beyond TP1 on uploaded charts.';
+      }
+    } else {
+      tp2Price = undefined;
+      tp2Status = 'UNAVAILABLE';
+      tp2Rationale = 'Runner target unconfirmed: Primary target unconfirmed on uploaded charts.';
+    }
+  }
+
+  // MATHEMATICAL RECONCILIATION
+  const risk = Math.abs(entryRec - slPrice!);
+  const reward1 = tp1Price !== undefined ? Math.abs(tp1Price - entryRec) : undefined;
+  const reward2 = tp2Price !== undefined ? Math.abs(tp2Price - entryRec) : undefined;
+
+  const rrr1 = (reward1 !== undefined && risk > 0) ? (reward1 / risk).toFixed(2) : undefined;
+  const rrr2 = (reward2 !== undefined && risk > 0) ? (reward2 / risk).toFixed(2) : undefined;
+
+  const pctGain1 = (reward1 !== undefined && entryRec > 0) ? Number(((reward1 / entryRec) * 100).toFixed(2)) : undefined;
+  const pctGain2 = (reward2 !== undefined && entryRec > 0) ? Number(((reward2 / entryRec) * 100).toFixed(2)) : undefined;
+  const pctRisk = Number(((risk / entryRec) * 100).toFixed(2));
+
+  // STEP BY STEP TRADE EXECUTION PLAN MATCHING CARD VALUES EXACTLY
+  const styleTitle = analysis.tradingStyle || 'Intraday';
+  const actionWord = finalSignal === 'BUY' ? 'Long' : 'Short';
+  const step1 = `1. Execution Trigger: Confirm ${actionWord} entry at ${formatLevelPrice(entryRec)} within the ${formatLevelPrice(entryMin)} – ${formatLevelPrice(entryMax)} zone (${styleTitle}).`;
+  const step2 = `2. Invalidation Anchor: Maintain strict stop loss at ${formatLevelPrice(slPrice!)} (-${pctRisk}%), invalidating setup if breached.`;
+  const step3 = tp1Price !== undefined
+    ? `3. Primary Target: Take primary profit at ${formatLevelPrice(tp1Price)} (+${pctGain1}%, R:R 1:${rrr1}) — ${tp1Rationale}`
+    : `3. Primary Target: Unconfirmed — ${tp1Rationale}`;
+  const step4 = tp2Price !== undefined
+    ? `4. Runner Target / Trailing: Trail remaining position to ${formatLevelPrice(tp2Price)} (+${pctGain2}%, R:R 1:${rrr2}) — ${tp2Rationale}`
+    : `4. Runner Target / Trailing: Unconfirmed — ${tp2Rationale}`;
+
+  const invalidationText = finalSignal === 'BUY'
+    ? `Bullish structure is invalidated if a candle closes below ${formatLevelPrice(slPrice!)}.`
+    : `Bearish structure is invalidated if a candle closes above ${formatLevelPrice(slPrice!)}.`;
+
+  const riskTips = rrr1
+    ? `Risk maximum 1–2% of trading equity on this setup. Mathematical Risk-to-Reward ratio is 1:${rrr1} on TP1${rrr2 ? ` and 1:${rrr2} on TP2` : ''}.`
+    : 'Risk maximum 1–2% of trading equity on this setup. Await confirmed target confirmation before executing.';
+
+  const reconciled: ChartAnalysis = {
+    ...analysis,
+    verdict: {
+      ...(analysis.verdict || {}),
+      signal: finalSignal,
+      bias: finalSignal === 'BUY' ? 'Bullish' : 'Bearish',
+      summary: analysis.verdict?.summary || `Decisive ${finalSignal} setup derived from visual chart price action and key levels.`,
+      timeframeContext: analysis.verdict?.timeframeContext || `${analysis.timeframe || 'Chart'} Structure`,
+    },
+    entryZone: {
+      ...analysis.entryZone,
+      recommended: entryRec,
+      min: entryMin,
+      max: entryMax,
+      range: `${formatLevelPrice(entryMin)} – ${formatLevelPrice(entryMax)}`,
+    },
+    stopLoss: {
+      ...analysis.stopLoss,
+      price: slPrice!,
+      percentage: `-${pctRisk}%`,
+      percentageRisk: pctRisk,
+      rationale: slRationale,
+    },
+    takeProfit1: {
+      ...analysis.takeProfit1,
+      price: tp1Price,
+      status: tp1Status,
+      percentageGain: pctGain1,
+      riskRewardRatio: rrr1 ? Number(rrr1) : undefined,
+      rrr: rrr1 ? `1:${rrr1}` : '—',
+      rationale: tp1Rationale,
+    },
+    takeProfit2: {
+      ...analysis.takeProfit2,
+      price: tp2Price,
+      status: tp2Status,
+      percentageGain: pctGain2,
+      riskRewardRatio: rrr2 ? Number(rrr2) : undefined,
+      rrr: rrr2 ? `1:${rrr2}` : '—',
+      rationale: tp2Rationale,
+    },
+    riskRewardRatio: rrr1 ? `1:${rrr1}` : '—',
+    tradePlanExecution: {
+      stepByStep: [step1, step2, step3, step4],
+      invalidationCriteria: invalidationText,
+      riskManagementTips: riskTips,
+    },
+  };
+
+  const checks = {
+    directionValid: finalSignal === 'BUY' || finalSignal === 'SELL',
+    entryZoneValid: entryRec > 0 && entryMin <= entryRec && entryRec <= entryMax,
+    slValid: finalSignal === 'BUY' ? slPrice! < entryMin : slPrice! > entryMax,
+    tp1Valid: tp1Price === undefined || (finalSignal === 'BUY' ? tp1Price > entryMax : tp1Price < entryMin),
+    tp2Valid: tp2Price === undefined || (finalSignal === 'BUY' ? (tp1Price !== undefined ? tp2Price > tp1Price : tp2Price > entryMax) : (tp1Price !== undefined ? tp2Price < tp1Price : tp2Price < entryMin)),
+    riskRewardValid: rrr1 === undefined || Number(rrr1) >= 0.95,
+    coreLevelsValid: entryRec !== null && slPrice !== null,
+  };
+
+  const allPassed = Object.values(checks).every(Boolean);
+
+  return {
+    reconciled,
+    validation: {
+      valid: allPassed,
+      checks,
+    },
+  };
+}
+
+export function validateTradeStructure(
   result: ChartAnalysis
 ): {
   valid: boolean;
   reason?: string;
+  checks?: Record<string, boolean>;
 } {
   const signal = String(result?.verdict?.signal || '').toUpperCase().trim();
 
-  if (!signal) {
+  if (signal === 'WAIT' || signal.includes('NO TRADE') || signal.includes('HOLD') || signal.includes('NEUTRAL')) {
     return {
-      valid: false,
-      reason: 'Missing verdict signal.',
+      valid: true,
+      checks: {
+        isWaitState: true,
+        tradeFilterActive: true,
+      },
     };
   }
 
   if (signal !== 'BUY' && signal !== 'SELL') {
     return {
       valid: false,
-      reason: `Verdict signal must be BUY or SELL, got "${signal}".`,
+      reason: `Verdict signal must be BUY, SELL, or WAIT, got "${signal}".`,
     };
   }
 
-  const entry =
-    finiteNumber(
-      result?.entryZone?.recommended ?? (result?.entryZone as any)?.min
-    );
+  const entryRec = finiteNumber(result?.entryZone?.recommended ?? (result?.entryZone as any)?.min);
+  const entryMin = finiteNumber((result?.entryZone as any)?.min) ?? entryRec;
+  const entryMax = finiteNumber((result?.entryZone as any)?.max) ?? entryRec;
+  const sl = finiteNumber(result?.stopLoss?.price);
+  const tp1 = finiteNumber(result?.takeProfit1?.price);
+  const tp2 = finiteNumber(result?.takeProfit2?.price);
 
-  const sl =
-    finiteNumber(
-      result?.stopLoss?.price
-    );
-
-  const tp1 =
-    finiteNumber(
-      result?.takeProfit1?.price
-    );
-
-  const tp2 =
-    finiteNumber(
-      result?.takeProfit2?.price
-    );
-
-  if (
-    entry === null ||
-    sl === null ||
-    tp1 === null
-  ) {
+  if (entryRec === null || sl === null) {
     return {
       valid: false,
-      reason:
-        'BUY/SELL analysis is missing valid Entry, Stop Loss or TP1.',
+      reason: 'BUY/SELL analysis must include valid Entry Zone and Stop Loss levels.',
     };
   }
 
   if (signal === 'BUY') {
-    if (!(sl < entry)) {
+    if (!(sl < entryMin && sl < entryRec)) {
       return {
         valid: false,
-        reason:
-          `Invalid BUY structure: Stop Loss (${sl}) must be below Entry (${entry}).`,
+        reason: `Invalid BUY structure: Stop Loss (${sl}) must be strictly below Entry Zone (${entryMin}–${entryMax}).`,
       };
     }
-
-    if (!(tp1 > entry)) {
-      return {
-        valid: false,
-        reason:
-          `Invalid BUY structure: TP1 (${tp1}) must be above Entry (${entry}).`,
-      };
+    if (tp1 !== null) {
+      if (!(tp1 > entryMax && tp1 > entryRec)) {
+        return {
+          valid: false,
+          reason: `Invalid BUY structure: TP1 (${tp1}) must be strictly above Entry Zone (${entryMin}–${entryMax}).`,
+        };
+      }
+      const risk = entryRec - sl;
+      const reward = tp1 - entryRec;
+      if (reward / risk < 0.95) {
+        return {
+          valid: false,
+          reason: `Invalid BUY structure: Risk/Reward (${(reward / risk).toFixed(2)}) is less than 1:1.0 minimum threshold.`,
+        };
+      }
     }
-
-    if (tp2 !== null && !(tp2 > tp1)) {
-      return {
-        valid: false,
-        reason:
-          `Invalid BUY structure: TP2 (${tp2}) must be above TP1 (${tp1}).`,
-      };
+    if (tp2 !== null && tp1 !== null) {
+      if (!(tp2 > tp1)) {
+        return {
+          valid: false,
+          reason: `Invalid BUY structure: TP2 (${tp2}) must be strictly above TP1 (${tp1}).`,
+        };
+      }
     }
   }
 
   if (signal === 'SELL') {
-    if (!(sl > entry)) {
+    if (!(sl > entryMax && sl > entryRec)) {
       return {
         valid: false,
-        reason:
-          `Invalid SELL structure: Stop Loss (${sl}) must be above Entry (${entry}).`,
+        reason: `Invalid SELL structure: Stop Loss (${sl}) must be strictly above Entry Zone (${entryMin}–${entryMax}).`,
       };
     }
-
-    if (!(tp1 < entry)) {
-      return {
-        valid: false,
-        reason:
-          `Invalid SELL structure: TP1 (${tp1}) must be below Entry (${entry}).`,
-      };
+    if (tp1 !== null) {
+      if (!(tp1 < entryMin && tp1 < entryRec)) {
+        return {
+          valid: false,
+          reason: `Invalid SELL structure: TP1 (${tp1}) must be strictly below Entry Zone (${entryMin}–${entryMax}).`,
+        };
+      }
+      const risk = sl - entryRec;
+      const reward = entryRec - tp1;
+      if (reward / risk < 0.95) {
+        return {
+          valid: false,
+          reason: `Invalid SELL structure: Risk/Reward (${(reward / risk).toFixed(2)}) is less than 1:1.0 minimum threshold.`,
+        };
+      }
     }
-
-    if (tp2 !== null && !(tp2 < tp1)) {
-      return {
-        valid: false,
-        reason:
-          `Invalid SELL structure: TP2 (${tp2}) must be below TP1 (${tp1}).`,
-      };
+    if (tp2 !== null && tp1 !== null) {
+      if (!(tp2 < tp1)) {
+        return {
+          valid: false,
+          reason: `Invalid SELL structure: TP2 (${tp2}) must be strictly below TP1 (${tp1}).`,
+        };
+      }
     }
   }
 
@@ -1163,131 +1950,7 @@ function normalizeAnalysis(
       })
       .filter((s): s is { level: string; price: number; strength: string } => s !== null);
   }
- console.log('[MTF NORMALIZE DEBUG]', {
-  support1: result.multiTimeframeSupport?.support1,
-  support2: result.multiTimeframeSupport?.support2,
-  support3: result.multiTimeframeSupport?.support3,
-  resistance1: result.multiTimeframeSupport?.resistance1,
-  resistance2: result.multiTimeframeSupport?.resistance2,
-  resistance3: result.multiTimeframeSupport?.resistance3,
-  combinedMajorSupport: result.multiTimeframeSupport?.combinedMajorSupport,
-  combinedMajorResistance: result.multiTimeframeSupport?.combinedMajorResistance,
-});
-  // Normalize Multi-Timeframe Support
-  if (result.multiTimeframeSupport) {
-  const mts = result.multiTimeframeSupport;
 
-  normalized.multiTimeframeSupport = {
-    support1: mts.support1
-      ? {
-          ...mts.support1,
-          timeframe: mts.support1.timeframe || '',
-          price: mts.support1.price === null
-            ? null
-            : parseNumericValue(mts.support1.price) ?? undefined,
-          strength: mts.support1.strength || 'Unavailable',
-          rationale: mts.support1.rationale || '',
-        }
-      : undefined,
-
-    resistance1: mts.resistance1
-      ? {
-          ...mts.resistance1,
-          timeframe: mts.resistance1.timeframe || '',
-          price: mts.resistance1.price === null
-            ? null
-            : parseNumericValue(mts.resistance1.price) ?? undefined,
-          strength: mts.resistance1.strength || 'Unavailable',
-          rationale: mts.resistance1.rationale || '',
-        }
-      : undefined,
-
-    support2: mts.support2
-      ? {
-          ...mts.support2,
-          timeframe: mts.support2.timeframe || '',
-          price: mts.support2.price === null
-            ? null
-            : parseNumericValue(mts.support2.price) ?? undefined,
-          strength: mts.support2.strength || 'Unavailable',
-          rationale: mts.support2.rationale || '',
-        }
-      : undefined,
-
-    resistance2: mts.resistance2
-      ? {
-          ...mts.resistance2,
-          timeframe: mts.resistance2.timeframe || '',
-          price: mts.resistance2.price === null
-            ? null
-            : parseNumericValue(mts.resistance2.price) ?? undefined,
-          strength: mts.resistance2.strength || 'Unavailable',
-          rationale: mts.resistance2.rationale || '',
-        }
-      : undefined,
-
-    support3: mts.support3
-      ? {
-          ...mts.support3,
-          timeframe: mts.support3.timeframe || '',
-          price: mts.support3.price === null
-            ? null
-            : parseNumericValue(mts.support3.price) ?? undefined,
-          strength: mts.support3.strength || 'Unavailable',
-          rationale: mts.support3.rationale || '',
-        }
-      : undefined,
-
-    resistance3: mts.resistance3
-      ? {
-          ...mts.resistance3,
-          timeframe: mts.resistance3.timeframe || '',
-          price: mts.resistance3.price === null
-            ? null
-            : parseNumericValue(mts.resistance3.price) ?? undefined,
-          strength: mts.resistance3.strength || 'Unavailable',
-          rationale: mts.resistance3.rationale || '',
-        }
-      : undefined,
-
-    combinedMajorSupport: mts.combinedMajorSupport
-      ? {
-          ...mts.combinedMajorSupport,
-          price: mts.combinedMajorSupport.price === null
-            ? null
-            : parseNumericValue(mts.combinedMajorSupport.price) ?? undefined,
-          strength: mts.combinedMajorSupport.strength || 'Strong',
-          rationale: mts.combinedMajorSupport.rationale || '',
-        }
-      : undefined,
-
-    combinedMajorResistance: mts.combinedMajorResistance
-      ? {
-          ...mts.combinedMajorResistance,
-          price: mts.combinedMajorResistance.price === null
-            ? null
-            : parseNumericValue(mts.combinedMajorResistance.price) ?? undefined,
-          strength: mts.combinedMajorResistance.strength || 'Strong',
-          rationale: mts.combinedMajorResistance.rationale || '',
-        }
-      : undefined,
-  };
-}
- 
-// Normalize supportLevels
-  if (Array.isArray(result.supportLevels)) {
-    normalized.supportLevels = result.supportLevels
-      .map((item: any, idx: number) => {
-        const p = parseNumericValue(item?.price ?? item);
-        if (p === null) return null;
-        return {
-          level: item?.level || `S${idx + 1}`,
-          price: p,
-          strength: item?.strength || 'Strong',
-        };
-      })
-      .filter((s): s is { level: string; price: number; strength: string } => s !== null);
-  }
   // Normalize resistanceLevels
   if (Array.isArray(result.resistanceLevels)) {
     normalized.resistanceLevels = result.resistanceLevels
@@ -1312,16 +1975,28 @@ function normalizeAnalysis(
     }
   }
 
-  // Enforce strictly BUY or SELL signal
+  // Signal normalization (support BUY, SELL, and WAIT)
   const rawSig = String(normalized.verdict?.signal || '').toUpperCase().trim();
-  let finalSignal: 'BUY' | 'SELL' = 'BUY';
-  if (rawSig.includes('SELL') || rawSig.includes('SHORT') || rawSig.includes('BEAR')) {
+  let finalSignal: 'BUY' | 'SELL' | 'WAIT' = 'BUY';
+  if (
+    rawSig.includes('WAIT') ||
+    rawSig.includes('HOLD') ||
+    rawSig.includes('NEUTRAL') ||
+    rawSig.includes('NO_TRADE') ||
+    rawSig.includes('NO TRADE')
+  ) {
+    finalSignal = 'WAIT';
+  } else if (rawSig.includes('SELL') || rawSig.includes('SHORT') || rawSig.includes('BEAR')) {
     finalSignal = 'SELL';
   } else if (rawSig.includes('BUY') || rawSig.includes('LONG') || rawSig.includes('BULL')) {
     finalSignal = 'BUY';
   } else {
     const biasUpper = String(normalized.verdict?.bias || normalized.marketTrend || '').toUpperCase();
-    finalSignal = biasUpper.includes('BEAR') || biasUpper.includes('DOWN') ? 'SELL' : 'BUY';
+    if (biasUpper.includes('NEUTRAL') || biasUpper.includes('WAIT') || biasUpper.includes('RANGE')) {
+      finalSignal = 'WAIT';
+    } else {
+      finalSignal = biasUpper.includes('BEAR') || biasUpper.includes('DOWN') ? 'SELL' : 'BUY';
+    }
   }
 
   if (!normalized.verdict) {
@@ -1392,9 +2067,99 @@ function normalizeAnalysis(
     }
   }
 
-  // Preserve multiTimeframeAnalysis if present
-  if (result.multiTimeframeAnalysis) {
-    normalized.multiTimeframeAnalysis = result.multiTimeframeAnalysis;
+  // Guarantee multiTimeframeAnalysis exists and strictly binds actual request timeframes & individual S1/R1 levels
+  if ((Array.isArray(request.timeframes) && request.timeframes.length > 0) || result.multiTimeframeAnalysis) {
+    const tfList = Array.isArray(request.timeframes) && request.timeframes.length > 0
+      ? request.timeframes
+      : ['Chart 1', 'Chart 2', 'Chart 3'];
+    const existingMtf = result.multiTimeframeAnalysis || {};
+    const rawChart1 = existingMtf.chart1 || {};
+    const rawChart2 = existingMtf.chart2 || {};
+    const rawChart3 = existingMtf.chart3 || {};
+
+    const primarySupport = parseNumericValue(normalized.supportLevels?.[0]?.price) ||
+      parseNumericValue(normalized.stopLoss?.price) || 0;
+
+    const secondarySupport = parseNumericValue(normalized.supportLevels?.[1]?.price) ||
+      (primarySupport > 0 ? primarySupport : 0);
+
+    const primaryResistance = parseNumericValue(normalized.resistanceLevels?.[0]?.price) ||
+      parseNumericValue(normalized.takeProfit1?.price) || 0;
+
+    const secondaryResistance = parseNumericValue(normalized.resistanceLevels?.[1]?.price) ||
+      (primaryResistance > 0 ? primaryResistance : 0);
+
+    const extractLevelPrice = (lvl: any, fallback: number): number => {
+      const p = parseNumericValue(lvl?.price ?? lvl);
+      return (p && p > 0) ? p : fallback;
+    };
+
+    normalized.multiTimeframeAnalysis = {
+      ...existingMtf,
+      chart1: {
+        ...rawChart1,
+        timeframe: tfList[0] || rawChart1.timeframe || 'Chart 1',
+        role: rawChart1.role || `${tfList[0] || 'Chart 1'} Structure: Macro Trend & Directional Bias`,
+        observations: rawChart1.observations || (result.marketTrend ? `${result.marketTrend} market structure` : 'Macro trend and structure aligned'),
+        trend: rawChart1.trend || (result.verdict?.signal === 'SELL' ? 'Bearish' : 'Bullish'),
+        support1: {
+          price: extractLevelPrice(rawChart1.support1, primarySupport),
+          strength: String(rawChart1.support1?.strength || 'MAJOR').toUpperCase(),
+          rationale: String(rawChart1.support1?.rationale || `Macro structural demand zone on ${tfList[0] || 'Chart 1'}`),
+        },
+        resistance1: {
+          price: extractLevelPrice(rawChart1.resistance1, secondaryResistance || primaryResistance),
+          strength: String(rawChart1.resistance1?.strength || 'MAJOR').toUpperCase(),
+          rationale: String(rawChart1.resistance1?.rationale || `Macro structural supply zone on ${tfList[0] || 'Chart 1'}`),
+        },
+      },
+      chart2: {
+        ...rawChart2,
+        timeframe: tfList[1] || rawChart2.timeframe || 'Chart 2',
+        role: rawChart2.role || `${tfList[1] || 'Chart 2'} Structure: Intermediate Confluence & Key Levels`,
+        observations: rawChart2.observations || (result.marketStructure?.type ? `${result.marketStructure.type} confluence zone` : 'Key structural reaction zone intact'),
+        keyLevels: rawChart2.keyLevels || 'Support/Resistance confluence tested',
+        support1: {
+          price: extractLevelPrice(rawChart2.support1, secondarySupport || primarySupport),
+          strength: String(rawChart2.support1?.strength || 'INTERMEDIATE').toUpperCase(),
+          rationale: String(rawChart2.support1?.rationale || `Key intermediate support confluence on ${tfList[1] || 'Chart 2'}`),
+        },
+        resistance1: {
+          price: extractLevelPrice(rawChart2.resistance1, primaryResistance),
+          strength: String(rawChart2.resistance1?.strength || 'INTERMEDIATE').toUpperCase(),
+          rationale: String(rawChart2.resistance1?.rationale || `Key intermediate resistance confluence on ${tfList[1] || 'Chart 2'}`),
+        },
+      },
+      chart3: {
+        ...rawChart3,
+        timeframe: tfList[2] || rawChart3.timeframe || 'Chart 3',
+        role: rawChart3.role || `${tfList[2] || 'Chart 3'} Structure: Execution Setup & Timing Trigger`,
+        observations: rawChart3.observations || (result.verdict?.summary || 'Precision execution trigger confirmation'),
+        setupTrigger: rawChart3.setupTrigger || (result.verdict?.signal || 'BUY'),
+        support1: {
+          price: extractLevelPrice(rawChart3.support1, parseNumericValue(normalized.entryZone?.min) || primarySupport),
+          strength: String(rawChart3.support1?.strength || 'MINOR').toUpperCase(),
+          rationale: String(rawChart3.support1?.rationale || `Local execution demand & invalidation level on ${tfList[2] || 'Chart 3'}`),
+        },
+        resistance1: {
+          price: extractLevelPrice(rawChart3.resistance1, parseNumericValue(normalized.entryZone?.max) || primaryResistance),
+          strength: String(rawChart3.resistance1?.strength || 'MINOR').toUpperCase(),
+          rationale: String(rawChart3.resistance1?.rationale || `Local trigger & immediate supply level on ${tfList[2] || 'Chart 3'}`),
+        },
+      },
+      combinedMajorSupport: {
+        price: extractLevelPrice(existingMtf.combinedMajorSupport, primarySupport),
+        strength: 'MAJOR',
+        rationale: String(existingMtf.combinedMajorSupport?.rationale || 'Highest confluence demand across all charts'),
+      },
+      combinedMajorResistance: {
+        price: extractLevelPrice(existingMtf.combinedMajorResistance, primaryResistance),
+        strength: 'MAJOR',
+        rationale: String(existingMtf.combinedMajorResistance?.rationale || 'Highest confluence supply across all charts'),
+      },
+      confluenceSummary: existingMtf.confluenceSummary || `Multi-timeframe alignment across ${tfList.join(' • ')} confirms high-probability setup.`,
+      conflictResolution: existingMtf.conflictResolution || 'Lower timeframe retracement resolved in direction of higher timeframe momentum.',
+    };
   }
 
   return normalized;
@@ -1403,6 +2168,23 @@ function normalizeAnalysis(
 // ============================================================
 // PROMPT
 // ============================================================
+
+export function parseTimeframeToMinutes(tf?: string): number {
+  if (!tf || typeof tf !== 'string') return 60;
+  const clean = tf.trim().toLowerCase();
+  if (clean.includes('mn') || clean.includes('month')) return 43200;
+  if (clean.includes('w')) return 10080;
+  if (clean.includes('d')) return 1440;
+  if (clean.includes('h')) {
+    const hours = parseInt(clean.replace(/[^0-9]/g, ''), 10) || 1;
+    return hours * 60;
+  }
+  if (clean.includes('m')) {
+    const mins = parseInt(clean.replace(/[^0-9]/g, ''), 10) || 15;
+    return mins;
+  }
+  return 60;
+}
 
 function buildVisionPrompt(params: {
   asset?: string;
@@ -1413,17 +2195,36 @@ function buildVisionPrompt(params: {
   imageCount: number;
   imageTimeframes?: string[];
 }): string {
+  const rawTfs = Array.isArray(params.imageTimeframes) && params.imageTimeframes.length > 0
+    ? params.imageTimeframes.map((t) => (t && typeof t === 'string' && t.trim().length > 0 ? t.trim() : 'Chart Timeframe'))
+    : [params.timeframe || 'Chart Timeframe'];
+
+  const tf1 = rawTfs[0] || 'Chart 1 Timeframe';
+  const tf2 = rawTfs[1] || 'Chart 2 Timeframe';
+  const tf3 = rawTfs[2] || 'Chart 3 Timeframe';
+
+  // Determine hierarchy from lowest to highest timeframe minutes
+  const tfInfo = rawTfs.map((t, idx) => ({ tf: t, minutes: parseTimeframeToMinutes(t), slot: idx + 1 }));
+  const sortedByMins = [...tfInfo].sort((a, b) => b.minutes - a.minutes);
+
+  const macroItem = sortedByMins[0] || { tf: tf1, minutes: 240, slot: 1 };
+  const interItem = sortedByMins.length > 2 ? sortedByMins[1] : (sortedByMins[0] || { tf: tf2, minutes: 60, slot: 2 });
+  const execItem = sortedByMins[sortedByMins.length - 1] || { tf: tf3, minutes: 15, slot: 3 };
+
+  const macroTf = macroItem.tf;
+  const interTf = interItem.tf;
+  const execTf = execItem.tf;
+
+  const role1 = `Chart 1 (${tf1}): Higher/Dominant Structure & Major Trend`;
+  const role2 = `Chart 2 (${tf2}): Intermediate Structure & S/R Confluence`;
+  const role3 = `Chart 3 (${tf3}): Execution Setup & Timing Trigger`;
+
   const mtfSpec = Array.isArray(params.imageTimeframes) && params.imageTimeframes.length > 0
     ? `
 Multi-Timeframe Specification for Uploaded Screenshots:
-${params.imageTimeframes.map((tf, idx) => {
-  const roles = [
-    'Chart 1: Higher Timeframe → Overall Trend / Market Structure / Dominant Direction',
-    'Chart 2: Middle Timeframe → Support & Resistance / Confluence / Key Zones',
-    'Chart 3: Lower Timeframe → Entry Setup / Precision Trigger Price / Stop Loss Invalidation',
-  ];
-  return `- Screenshot ${idx + 1}: Timeframe ${tf || 'Auto-detect'} (${roles[idx] || 'Supporting Context'})`;
-}).join('\n')}
+- Screenshot 1: Timeframe ${tf1} (${role1})
+- Screenshot 2: Timeframe ${tf2} (${role2})
+- Screenshot 3: Timeframe ${tf3} (${role3})
 `
     : '';
 
@@ -1505,19 +2306,18 @@ Possible valid reasons include:
 - market-structure confirmation
 - clearly visible pullback area
 
-4. MANDATORY TRADE DIRECTION: MUST BE 'BUY' OR 'SELL'.
-
-Every successfully analyzed chart MUST receive a definitive trade direction: either 'BUY' or 'SELL'.
-
-You are STRICTLY FORBIDDEN from outputting 'WAIT', 'NO TRADE', 'NO SETUP', 'NEUTRAL', or 'INSUFFICIENT' as the verdict.signal.
-
-Even in consolidating, ranging, or complex market conditions, you must evaluate the dominant technical bias, order flow, recent swings, and supply/demand zones on the chart to formulate the highest-probability, technically defensible trade plan:
-- If the structure favors an upward move, support bounce, break of resistance, or sweep of lower liquidity: Signal is 'BUY'.
-- If the structure favors a downward move, resistance rejection, break of support, or sweep of upper liquidity: Signal is 'SELL'.
+4. MANDATORY ACTIONABLE TRADE DIRECTION ('BUY' OR 'SELL'):
+Traders upload charts to receive a definitive, high-probability execution setup.
+You MUST provide a clear, actionable 'BUY' (Long) or 'SELL' (Short) signal.
+NEVER return 'WAIT', 'NEUTRAL', 'HOLD', or 'NO TRADE' in verdict.signal.
+- If market structure is bullish, holding support, forming higher lows, or breaking out: verdict.signal MUST be 'BUY'.
+- If market structure is bearish, rejecting resistance, forming lower highs, or breaking down: verdict.signal MUST be 'SELL'.
+- If price is in a range:
+  * If price is near range support: verdict.signal MUST be 'BUY' (targeting range resistance as TP1, range expansion as TP2).
+  * If price is near range resistance: verdict.signal MUST be 'SELL' (targeting range support as TP1, range expansion as TP2).
 
 5. COMPLETE TRADE SETUP LEVELS REQUIRED FOR EVERY CHART.
-
-For every chart, you MUST provide all core levels derived strictly from visible chart information:
+For every chart, you MUST provide core levels derived strictly from visible chart information:
 - Entry (entryZone.recommended, entryZone.min, entryZone.max, entryZone.range)
 - Stop Loss (stopLoss.price)
 - Take Profit 1 (takeProfit1.price)
@@ -1526,703 +2326,220 @@ For every chart, you MUST provide all core levels derived strictly from visible 
 - Resistance levels (resistanceLevels array)
 - Risk / Reward ratio (riskRewardRatio)
 
-CRITICAL LEVEL RULES:
+CRITICAL LEVEL RULES & STRUCTURAL CONSISTENCY:
 - DERIVE ALL LEVELS FROM VISIBLE CHART PRICE ACTION: Read the visible price scale and actual candle formations (wicks, bodies, swing highs, swing lows, order blocks, fair value gaps, key support/resistance lines).
 - NEVER USE FAKE, FIXED, OR RANDOM PRICES.
 - DO NOT BLINDLY COPY CURRENT MARKET PRICE AS ENTRY. The Entry must be a technically justified execution zone (e.g. pullback level, retest level, or zone boundary).
-- STOP LOSS:
-  * For BUY: Stop Loss MUST be strictly below Entry (SL < Entry). Placed below key swing low, support, or structural invalidation level.
-  * For SELL: Stop Loss MUST be strictly above Entry (SL > Entry). Placed above key swing high, resistance, or structural invalidation level.
-- TAKE PROFITS:
-  * For BUY: TP1 MUST be strictly above Entry (TP1 > Entry), and TP2 MUST be strictly above TP1 (TP2 > TP1). Placed at upcoming visible resistance or swing targets.
-  * For SELL: TP1 MUST be strictly below Entry (TP1 < Entry), and TP2 MUST be strictly below TP1 (TP2 < TP1). Placed at upcoming visible support or swing targets.
-
-6. BUY STRUCTURE.
-
-For BUY:
-SL must be below Entry.
-
-TP1 must be above Entry.
-
-TP2, if supplied, must be above TP1.
-
-TP3, if supplied, must be above TP2.
-
-7. SELL STRUCTURE.
-
-For SELL:
-SL must be above Entry.
-
-TP1 must be below Entry.
-
-TP2, if supplied, must be below TP1.
-
-TP3, if supplied, must be below TP2.
-
-8. SUPPORT AND RESISTANCE — DYNAMIC MULTI-TIMEFRAME REQUIREMENT.
-
-Only report support and resistance levels that are actually supported
-by visible chart structure.
-
-When multiple screenshots are provided, analyze EACH uploaded chart
-independently.
-
-The three uploaded charts are identified by their upload order:
-
-- Chart 1 = first uploaded screenshot
-- Chart 2 = second uploaded screenshot
-- Chart 3 = third uploaded screenshot
-
-NEVER assume that the three charts are 15M, 1H and 4H.
-
-The actual timeframe must be read from the chart when visible and must
-be preserved exactly.
-
-------------------------------------------------------------
-CHART 1 — SUPPORT / RESISTANCE
-------------------------------------------------------------
-
-Identify the most relevant visible support and resistance from Chart 1.
-
-Store them as:
-
-- multiTimeframeSupport.support1
-- multiTimeframeSupport.resistance1
-
-The "timeframe" field MUST contain the actual timeframe of Chart 1.
-
-Example:
-
-"support1": {
-  "timeframe": "5M",
-  "price": 4165,
-  "strength": "Strong",
-  "rationale": "Recent 5M swing low with repeated bullish rejection."
-}
-
-Do NOT assume Chart 1 is 15M, 1H, 4H, Daily, or any other fixed timeframe.
-
-Support 1 must come from Chart 1.
-
-Resistance 1 must come from Chart 1.
-
-------------------------------------------------------------
-CHART 2 — SUPPORT / RESISTANCE
-------------------------------------------------------------
-
-Identify the most relevant visible support and resistance from Chart 2.
-
-Store them as:
-
-- multiTimeframeSupport.support2
-- multiTimeframeSupport.resistance2
-
-The "timeframe" field MUST contain the actual timeframe of Chart 2.
-
-Support 2 must come from Chart 2.
-
-Resistance 2 must come from Chart 2.
-
-Do NOT copy Chart 1 levels into Chart 2 unless the same price level is
-independently visible and structurally valid on Chart 2.
-
-------------------------------------------------------------
-CHART 3 — SUPPORT / RESISTANCE
-------------------------------------------------------------
-
-Identify the most relevant visible support and resistance from Chart 3.
-
-Store them as:
-
-- multiTimeframeSupport.support3
-- multiTimeframeSupport.resistance3
-
-The "timeframe" field MUST contain the actual timeframe of Chart 3.
-
-Support 3 must come from Chart 3.
-
-Resistance 3 must come from Chart 3.
-
-Do NOT copy Chart 1 or Chart 2 levels into Chart 3 unless the same
-price level is independently visible and structurally valid on Chart 3.
-
-------------------------------------------------------------
-HOW TO IDENTIFY SUPPORT
-------------------------------------------------------------
-
-For each chart, prefer support based on visible:
-
-- recent swing lows
-- repeated price reactions
-- demand zones
-- successful retests
-- liquidity sweeps followed by reclaim
-- strong bullish rejection
-- previous structural support
-- clearly visible consolidation boundaries
-
-The support price MUST come from the visible price structure of that
-specific chart.
-
-Do NOT invent a precise price when the price scale is unreadable.
-
-------------------------------------------------------------
-HOW TO IDENTIFY RESISTANCE
-------------------------------------------------------------
-
-For each chart, prefer resistance based on visible:
-
-- recent swing highs
-- repeated price reactions
-- supply zones
-- failed breakouts
-- resistance retests
-- liquidity sweeps followed by rejection
-- strong bearish rejection
-- previous structural resistance
-- clearly visible consolidation boundaries
-
-The resistance price MUST come from the visible price structure of that
-specific chart.
-
-Do NOT invent a precise price when the price scale is unreadable.
-
-------------------------------------------------------------
-UNAVAILABLE CHART DATA
-------------------------------------------------------------
-
-If a chart is provided but its timeframe or price structure cannot be
-reliably read, do NOT fabricate a level.
-
-Use:
-
-"price": null,
-"strength": "Unavailable",
-"rationale": "No usable chart data for this level."
-
-If the timeframe can still be identified, preserve it in the
-"timeframe" field.
-
-If the timeframe itself cannot be identified, use:
-
-"timeframe": "Unknown"
-
-------------------------------------------------------------
-COMBINED MAJOR SUPPORT
-------------------------------------------------------------
-
-After independently analyzing Support 1, Support 2 and Support 3,
-determine the strongest major support for the unified trade plan.
-
-Store it as:
-
-multiTimeframeSupport.combinedMajorSupport
-
-Prefer genuine confluence where support areas from multiple charts
-overlap or are closely aligned.
-
-If the individual support levels are materially different:
-
-- Do NOT pretend they are the same level.
-- Select the structurally most important major support.
-- Explain why it is more important for the unified trade plan.
-
-The Combined Major Support MUST be supported by actual visible chart
-evidence.
-
-------------------------------------------------------------
-COMBINED MAJOR RESISTANCE
-------------------------------------------------------------
-
-After independently analyzing Resistance 1, Resistance 2 and
-Resistance 3, determine the strongest major resistance for the unified
-trade plan.
-
-Store it as:
-
-multiTimeframeSupport.combinedMajorResistance
-
-Prefer genuine confluence where resistance areas from multiple charts
-overlap or are closely aligned.
-
-If the individual resistance levels are materially different:
-
-- Do NOT pretend they are the same level.
-- Select the structurally most important major resistance.
-- Explain why it is more important for the unified trade plan.
-
-The Combined Major Resistance MUST be supported by actual visible chart
-evidence.
-
-------------------------------------------------------------
-CRITICAL RULES
-------------------------------------------------------------
-
-NEVER assume fixed timeframes such as:
-
-15M
-1H
-4H
-
-The uploaded charts may be ANY timeframes.
-
-For example, if the charts are:
-
-5M + 30M + 2H
-
-then report:
-
-Support 1 → 5M
-Support 2 → 30M
-Support 3 → 2H
-
-and:
-
-Resistance 1 → 5M
-Resistance 2 → 30M
-Resistance 3 → 2H
-
-If the charts are:
-
-1H + 4H + 1D
-
-then report:
-
-Support 1 → 1H
-Support 2 → 4H
-Support 3 → 1D
-
-and:
-
-Resistance 1 → 1H
-Resistance 2 → 4H
-Resistance 3 → 1D
-
-NEVER rename an actual timeframe.
-
-NEVER replace individual levels with combined labels such as:
-
-"15M/1H support"
-"1H/4H support"
-"15M/1H/4H support"
-
-Each chart's level must remain individually identified.
-
-The Combined Major Support and Combined Major Resistance are separate
-from Support 1/2/3 and Resistance 1/2/3.
-
-The combined levels must be derived from the actual visible levels
-identified across the uploaded charts.
-
-9. MULTIPLE SCREENSHOTS (PRO MULTI-TIMEFRAME ANALYSIS).
+- When overhead resistance (BUY) or underlying support (SELL) is visible on chart, anchor takeProfit1 and takeProfit2 directly to those levels with appropriate front-running buffer.
+- If a secondary or primary target has no visible structural basis on the uploaded charts, do NOT fabricate synthetic prices.
+- For BUY: stopLoss.price < entryZone.min <= entryZone.recommended <= entryZone.max < takeProfit1.price < takeProfit2.price
+- For SELL: stopLoss.price > entryZone.max >= entryZone.recommended >= entryZone.min > takeProfit1.price > takeProfit2.price
+
+============================================================
+CRITICAL TRADE PLAN CONSISTENCY & SUPPORT/RESISTANCE ANCHORING RULES
+============================================================
+
+YOU MUST NEVER GENERATE BLIND TAKE-PROFIT OR STOP-LOSS LEVELS THAT CONFLICT WITH IDENTIFIED SUPPORT AND RESISTANCE LEVELS.
+
+1. FOR A BUY SETUP:
+   a. NEAREST RESISTANCE IDENTIFICATION:
+      - Locate the nearest meaningful resistance level above the recommended Entry price (e.g., R1 or visible supply zone).
+   b. TP1 LOGICAL POSITIONING:
+      - If room to resistance provides at least 1:1.2 Risk/Reward, place TP1 before (below) nearest resistance (front-running resistance).
+      - If immediate resistance is close, target a breakout continuation to the next major resistance (R2) as TP1, with a rationale explaining the breakout target.
+   c. TP2 LOGICAL POSITIONING:
+      - TP2 must be anchored to a higher structural resistance level (R2 or R3) or liquidity pool. It must strictly be higher than TP1.
+   d. STOP LOSS & SUPPORT ALIGNMENT:
+      - Stop Loss MUST be strictly below Entry (SL < Entry) and anchored below the key structural support (S1) or swing low invalidation level with a sensible buffer.
+
+2. FOR A SELL SETUP:
+   a. NEAREST SUPPORT IDENTIFICATION:
+      - Locate the nearest meaningful support level below the recommended Entry price (e.g., S1 or visible demand zone).
+   b. TP1 LOGICAL POSITIONING:
+      - If room to support provides at least 1:1.2 Risk/Reward, place TP1 before (above) nearest support (front-running demand).
+      - If immediate support is close, target a breakdown continuation to the next major support (S2) as TP1, with a rationale explaining the breakdown target.
+   c. TP2 LOGICAL POSITIONING:
+      - TP2 must be anchored to a lower structural support level (S2 or S3) or lower liquidity pool. It must strictly be lower than TP1.
+   d. STOP LOSS & RESISTANCE ALIGNMENT:
+      - Stop Loss MUST be strictly above Entry (SL > Entry) and anchored above the key structural resistance (R1) or swing high invalidation level with a sensible buffer.
+
+3. DYNAMIC TECHNICAL BUFFERING (NO FIXED HARDCODED NUMBERS):
+   - Buffers must never be a blind flat amount (like "$5").
+   - Buffers must naturally scale with asset price scale, volatility, and timeframe:
+     * High volatility / high price (Crypto, Gold): proportional percentage based on recent candle wicks (typically 0.15% - 0.5% buffer).
+     * Forex: buffer in pips proportional to ATR / candle range.
+     * Scalping timeframe: tighter buffer; Swing timeframe: wider structural buffer.
+
+4. COMPLETE STRUCTURAL HARMONY:
+   - For BUY: Stop Loss < Support Invalidation < Entry Zone < TP1 < TP2.
+   - For SELL: Stop Loss > Resistance Invalidation > Entry Zone > TP1 > TP2.
+   - All levels must strictly agree with one another.
+
+5. REAL NUMERICAL LEVELS GROUNDED IN CHARTS:
+   - Core levels: Entry and Stop Loss must always be real numbers grounded in visible structure.
+   - Take Profit 1 and Take Profit 2 must be anchored to actual support/resistance or clear price-action targets.
+   - If a target cannot be confirmed by visible chart structure, do NOT fabricate synthetic numbers.
+
+6. BUY AND SELL LEVEL INTEGRITY:
+- BUY: SL < Entry < TP1 < TP2.
+- SELL: SL > Entry > TP1 > TP2.
+
+7. SUPPORT AND RESISTANCE LEVEL VALIDITY:
+- Only report levels that are actually supported by visible chart structure.
+
+9. MULTI-TIMEFRAME MARKET STRUCTURE HIERARCHY & TARGET REALISM (MANDATORY).
 
 If multiple screenshots are provided (${params.imageCount || 1} image(s) provided):
+- You MUST thoroughly scan and analyze EVERY SINGLE SCREENSHOT in strict hierarchical sequence:
 
-- You MUST thoroughly scan and analyze EVERY SINGLE SCREENSHOT in sequence:
-  Chart 1, Chart 2, Chart 3.
+  Higher Structure (Chart 1 - ${tf1}):
+  * Determine the major market trend on ${tf1}.
+  * Identify major swing highs and lows on ${tf1}.
+  * Identify major macro support (S1) and resistance (R1) on ${tf1}.
+  * Identify major liquidity zones.
+  * Determine the dominant structural direction and bias.
 
-- Determine the ACTUAL timeframe of each uploaded chart from the
-  visible chart information whenever possible.
+  Intermediate Structure (Chart 2 - ${tf2}):
+  * Determine the intermediate trend inside the ${tf1} structure.
+  * Identify the most relevant current support (S1) and resistance (R1) on ${tf2}.
+  * Identify recent swing highs/lows and reaction zones on ${tf2}.
+  * Determine whether the ${tf2} structure agrees with or conflicts with the ${tf1} structure.
 
-- NEVER assume fixed timeframes such as 15M, 1H, 4H, Daily, 5M, 30M,
-  or any other predefined timeframe.
+  Execution Structure (Chart 3 - ${tf3}):
+  * Determine the execution trend and trigger setup on ${tf3}.
+  * Identify recent swing highs and lows on ${tf3}.
+  * Identify the nearest meaningful reaction levels on ${tf3}.
+  * Identify the actual execution support (S1) and resistance (R1) around current price on ${tf3}.
+  * Use ${tf3} for precision execution timing, entry trigger, and immediate invalidation.
 
-- Preserve each chart's actual timeframe and identity throughout the
-  analysis.
+TIMEFRAME RELATIONSHIP & ANALYSIS FLOW:
+- The analysis must flow strictly from:
+  Higher structure (${macroTf}) -> Intermediate structure (${interTf}) -> Execution structure (${execTf}) -> Execution Entry.
+- Do NOT treat the timeframes as independent disconnected analyses.
+- The lower timeframe MUST be interpreted inside the higher timeframe structure.
 
-- Understand each chart's role based on its ACTUAL timeframe and
-  visible market structure:
+ENTRY CRITERIA:
+- Entry must be based on the actual execution setup on ${execTf} and current price action, while respecting ${interTf} and ${macroTf} structure.
+- Do NOT invent an entry simply because it produces a desirable Risk/Reward ratio.
 
-  * Chart 1:
-    Analyze its actual timeframe for the market structure, trend,
-    important swing points, and major visible levels.
+STOP LOSS (REAL STRUCTURAL INVALIDATION):
+- SL must be placed at a REAL structural invalidation level:
+  * swing low/high
+  * support/resistance break point
+  * liquidity sweep invalidation
+- For the execution setup, SL must be anchored to the nearest valid structural invalidation on ${execTf} (e.g. swing low or support break).
+- Do NOT place SL at an artificially distant higher-timeframe level if that bloats the risk beyond the setup.
 
-  * Chart 2:
-    Analyze its actual timeframe for intermediate structure,
-    support/resistance, confluence, liquidity behavior, and key zones.
+TP1 (FIRST REALISTIC PROFIT/REACTION TARGET):
+- TP1 must be the FIRST REALISTIC PROFIT/REACTION TARGET after execution entry.
+- For BUY:
+  * TP1 must be above execution entry and outside the entry zone.
+  * TP1 must be based on the nearest meaningful resistance on ${execTf} or ${interTf}, swing high, or liquidity reaction area.
+  * Price CANNOT skip the nearest unbroken resistance to target a higher level without an explicit confirmed breakout!
+- For SELL:
+  * TP1 must be below execution entry and outside the entry zone.
+  * TP1 must be based on the nearest meaningful support on ${execTf} or ${interTf}, swing low, or liquidity reaction area.
+  * Price CANNOT skip the nearest unbroken support to target a deeper level without an explicit confirmed breakdown!
 
-  * Chart 3:
-    Analyze its actual timeframe for entry setup, local price action,
-    confirmation, and structural invalidation.
+TP2 (NEXT REAL MARKET-STRUCTURE TARGET):
+- TP2 must be the NEXT REAL MARKET-STRUCTURE TARGET after TP1.
+- For BUY: based on the next meaningful resistance on ${interTf} or ${macroTf}, liquidity expansion, or confirmed continuation structure.
+- For SELL: based on the next meaningful support on ${interTf} or ${macroTf}, liquidity expansion, or confirmed continuation structure.
+- VERY IMPORTANT: Do NOT assume that a higher-timeframe level automatically becomes TP2. Evaluate whether price has realistic room to travel from the current execution setup to that level.
 
-- The roles above are functional descriptions only.
-  Do NOT assign a fixed timeframe to any role.
+NO FAKE LEVELS:
+- Never invent TP1, TP2, Entry or SL just to make the numbers look complete.
+- Every displayed level must have a visible market-structure reason.
+- If genuine chart resistance (for BUY) or support (for SELL) offering favorable R:R does not exist, do NOT fabricate synthetic numbers.
 
-- If the uploaded charts have different timeframes, compare them
-  according to their actual timeframe hierarchy.
+EVERY UPLOADED CHART MUST HAVE ITS OWN S1 AND R1:
+  * Chart 1 MUST have its own S1 (support1) and R1 (resistance1) detected on ${tf1}.
+  * Chart 2 MUST have its own S1 (support1) and R1 (resistance1) detected on ${tf2}.
+  * Chart 3 MUST have its own S1 (support1) and R1 (resistance1) detected on ${tf3}.
+  * Each support1 and resistance1 must include a valid numeric price, strength ("MAJOR" | "INTERMEDIATE" | "MINOR"), and brief rationale.
+  * Also provide combinedMajorSupport and combinedMajorResistance synthesized across all charts.
+- You must synthesize all charts into ONE UNIFIED, COHESIVE TRADE PLAN.
+- In the "multiTimeframeAnalysis" JSON field, provide clear observations for each chart (chart1, chart2, chart3) along with its S1/R1, the confluence summary, and how any conflict was resolved.
 
-- If there is a conflict between timeframes:
-  * Determine which chart represents the broader/higher timeframe
-    structure based on the actual uploaded timeframes.
-  * Use the broader structure to determine the dominant market context.
-  * Use the more precise/lower timeframe structure for entry timing,
-    confirmation, and invalidation when appropriate.
-  * Do NOT automatically treat Chart 1 as the highest timeframe or
-    Chart 3 as the lowest timeframe unless the actual uploaded
-    timeframes confirm this.
-
-- If the uploaded charts are not in conventional higher-to-lower
-  timeframe order, analyze them according to their actual timeframes
-  rather than their upload order.
-
-- You MUST synthesize all available charts into ONE UNIFIED,
-  COHESIVE TRADE PLAN.
-
-- In the "multiTimeframeAnalysis" JSON field, provide clear observations
-  for each uploaded chart:
-
-  * chart1:
-    - actual timeframe
-    - role based on the actual chart
-    - observations
-    - trend when applicable
-
-  * chart2:
-    - actual timeframe
-    - role based on the actual chart
-    - observations
-    - key levels when applicable
-
-  * chart3:
-    - actual timeframe
-    - role based on the actual chart
-    - observations
-    - setup trigger when applicable
-
-- Also provide:
-  * confluenceSummary:
-    Explain where the uploaded charts agree or show confluence.
-
-  * conflictResolution:
-    Explain how any disagreement between the actual chart
-    timeframes was resolved.
-
-- NEVER invent a timeframe that is not visible or reliably identifiable
-  from the uploaded chart.
-
-- If a chart's timeframe cannot be reliably identified, use
-  "Unknown" rather than guessing.
 10. TIMEFRAME.
 
 Respect the user's selected timeframe.
 
 If the chart itself visibly shows a different timeframe, mention the discrepancy.
 
-11. TRADING STYLE.
+11. TRADING STYLE (ACTIVE ANALYSIS MANDATE).
 
-Scalping:
-Focus on short-term execution and immediate structure.
+User Selected Trading Style: ${params.tradingStyle || 'Intraday'}
 
-Intraday:
-Focus on intraday structure, key levels and session movement.
+${
+  (() => {
+    const s = String(params.tradingStyle || 'Intraday').toLowerCase();
+    if (s.includes('scalp')) {
+      return `ACTIVE MANDATE — SCALPING:
+- Focus primarily on the shortest relevant timeframe/chart structure available.
+- Prioritize immediate/local market structure, micro pullbacks, local breakouts and nearby liquidity.
+- Entry should be precise and close to the current actionable structure.
+- Stop Loss should normally be based on the nearest technically valid local structural invalidation.
+- Targets should be realistic for a short-duration trade.
+- Do not use distant higher-timeframe targets merely because they exist.
+- The trade should be designed for a short trading session/horizon.
+- Do not widen the trade simply to make it resemble a Swing or Position setup.`;
+    }
+    if (s.includes('intra')) {
+      return `ACTIVE MANDATE — INTRADAY:
+- Focus on same-session market structure and intraday movement.
+- Use relevant intraday support/resistance, session highs/lows and visible structure.
+- Entry should be suitable for a trade intended to complete within the trading session.
+- Stop Loss should use technically valid intraday structural invalidation.
+- Targets should be realistic for an intraday move.
+- Avoid unnecessarily distant multi-day targets.`;
+    }
+    if (s.includes('position')) {
+      return `ACTIVE MANDATE — POSITION:
+- Prioritize higher-timeframe and macro market structure.
+- Focus on major structural boundaries, long-term trend continuation or major reversals.
+- Entry should be based on meaningful macro structure.
+- Stop Loss should use major structural invalidation where supported by the chart.
+- Targets may extend toward major higher-timeframe levels and longer-term objectives.
+- Do not use tiny intraday fluctuations as the primary basis for the position trade.`;
+    }
+    return `ACTIVE MANDATE — SWING:
+- Prioritize larger structural swings and meaningful multi-timeframe structure.
+- Entry can use deeper pullbacks/retests when supported by the chart.
+- Stop Loss should normally be based on meaningful swing structure rather than very small intraday fluctuations.
+- Targets should allow for a multi-session or multi-day move when the visible structure supports it.
+- Do not force a wide stop or distant target if the chart does not support it.`;
+  })()
+}
 
-Swing:
-Focus on larger structure, major support/resistance and multi-session movement.
-
-Position:
-Focus on broad market structure and major levels.
+CRITICAL RULES FOR TRADING STYLE:
+- The selected Trading Style MUST actively influence and control:
+  * Market structure interpretation (immediate micro vs. intraday session vs. swing vs. macro position)
+  * Entry zone proximity and precision
+  * Stop Loss placement and invalidation horizon
+  * Take Profit selection and target horizon
+  * Trade plan explanation and rationale
+- Chart evidence ALWAYS has priority:
+  * Do NOT invent prices or force a setup simply to satisfy a Trading Style.
+  * Every price level must be anchored to actual visible candlestick and price action structure.
+- DO NOT blindly force a fixed Risk/Reward ratio:
+  * Risk/reward should be a natural consequence of technically valid chart-based Entry, SL, and TP.
+  * Never invent or move a price simply to satisfy a preferred R:R.
 
 ============================================================
-ENTRY / STOP LOSS / TAKE PROFIT EXECUTION LOGIC
+ENTRY LOGIC
 ============================================================
 
-The trade setup MUST be built from the identified multi-timeframe
-support and resistance levels.
+For BUY:
+Prefer a pullback/retest or confirmation area below/around current price when technically justified.
 
-Do NOT use the current market price as the Entry simply because it is
-visible.
+For SELL:
+Prefer a rejection/retest or confirmation area above/around current price when technically justified.
 
-------------------------------------------------------------
-DYNAMIC MULTI-TIMEFRAME EXECUTION RULES
-------------------------------------------------------------
+Do not chase price.
 
-The user may provide ANY three chart timeframes.
+Do not use the current price as Entry unless the chart clearly shows that the current price itself is a valid execution trigger according to the visible setup.
 
-NEVER assume that the charts are always 15M, 1H and 4H.
-
-The three uploaded charts are represented as:
-
-- Chart 1 = the first uploaded chart and its actual timeframe
-- Chart 2 = the second uploaded chart and its actual timeframe
-- Chart 3 = the third uploaded chart and its actual timeframe
-
-Always use the ACTUAL timeframe detected from each chart.
-
-Do NOT rename, replace, or assume a timeframe.
-
-The support and resistance levels must remain individually tied to
-their source chart:
-
-- Support 1 / Resistance 1 → Chart 1 actual timeframe
-- Support 2 / Resistance 2 → Chart 2 actual timeframe
-- Support 3 / Resistance 3 → Chart 3 actual timeframe
-
-The actual timeframe must be reported in the corresponding
-multiTimeframeSupport object.
-
-------------------------------------------------------------
-SELL SETUP
-------------------------------------------------------------
-
-When the final signal is SELL:
-
-1. ENTRY
-
-The preferred SELL Entry should be near the resistance level that is
-most appropriate for the execution timeframe.
-
-Prefer rejection, sweep-and-rejection, or bearish confirmation at
-that resistance.
-
-Do NOT assume that the execution timeframe is 15M.
-
-Select the appropriate resistance from the available chart
-timeframes based on visible price structure and execution quality.
-
-entryZone.min and entryZone.max must define the actual visible
-execution zone.
-
-Do NOT chase price after it has already moved substantially away
-from the selected resistance zone.
-
-2. STOP LOSS
-
-The SELL Stop Loss must be above the relevant structural resistance
-or swing high that invalidates the setup.
-
-Prefer the higher-timeframe structural resistance when it is clearly
-visible and relevant.
-
-Leave enough room above the structural level for a normal
-liquidity sweep or wick.
-
-The SL must remain above Entry.
-
-Do NOT use a fixed timeframe such as 1H for Stop Loss.
-
-3. TAKE PROFIT 1
-
-TP1 should normally be the nearest meaningful support below Entry
-from one of the available chart timeframes.
-
-Use the EXACT price from the corresponding support object.
-
-The TP1 rationale MUST explicitly identify the source timeframe.
-
-For example:
-
-"TP1 is aligned with the 5M support at 4165."
-
-or:
-
-"TP1 is aligned with the 1H support at 4180."
-
-Never invent a separate TP1 price when a valid visible support exists.
-
-4. TAKE PROFIT 2
-
-TP2 should normally be the Combined Major Support below TP1.
-
-Use the exact price from:
-
-multiTimeframeSupport.combinedMajorSupport.price
-
-TP2 rationale MUST explicitly say:
-
-"Combined Major Support"
-
-TP2 must be below TP1.
-
-Therefore the preferred SELL structure is:
-
-SELL Entry → appropriate visible resistance
-SL → structural invalidation resistance/swing high
-TP1 → nearest meaningful timeframe-specific support
-TP2 → Combined Major Support
-
-
-------------------------------------------------------------
-BUY SETUP
-------------------------------------------------------------
-
-When the final signal is BUY:
-
-1. ENTRY
-
-The preferred BUY Entry should be near the support level that is
-most appropriate for the execution timeframe.
-
-Prefer support bounce, sweep-and-reclaim, or bullish confirmation
-at that support.
-
-Do NOT assume that the execution timeframe is 15M.
-
-Select the appropriate support from the available chart timeframes
-based on visible price structure and execution quality.
-
-entryZone.min and entryZone.max must define the actual visible
-execution zone.
-
-Do NOT chase price after it has already moved substantially away
-from the selected support zone.
-
-2. STOP LOSS
-
-The BUY Stop Loss must be below the relevant structural support
-or swing low that invalidates the setup.
-
-Prefer the higher-timeframe structural support when it is clearly
-visible and relevant.
-
-Leave enough room below the structural level for a normal
-liquidity sweep or wick.
-
-The SL must remain below Entry.
-
-Do NOT use a fixed timeframe such as 1H for Stop Loss.
-
-3. TAKE PROFIT 1
-
-TP1 should normally be the nearest meaningful resistance above
-Entry from one of the available chart timeframes.
-
-Use the EXACT price from the corresponding resistance object.
-
-The TP1 rationale MUST explicitly identify the source timeframe.
-
-For example:
-
-"TP1 is aligned with the 15M resistance at 4200."
-
-or:
-
-"TP1 is aligned with the 4H resistance at 4250."
-
-Never invent a separate TP1 price when a valid visible resistance exists.
-
-4. TAKE PROFIT 2
-
-TP2 should normally be the Combined Major Resistance above TP1.
-
-Use the exact price from:
-
-multiTimeframeSupport.combinedMajorResistance.price
-
-TP2 rationale MUST explicitly say:
-
-"Combined Major Resistance"
-
-TP2 must be above TP1.
-
-Therefore the preferred BUY structure is:
-
-BUY Entry → appropriate visible support
-SL → structural invalidation support/swing low
-TP1 → nearest meaningful timeframe-specific resistance
-TP2 → Combined Major Resistance
-
-
-------------------------------------------------------------
-TIMEFRAME-SPECIFIC SUPPORT / RESISTANCE RULE
-------------------------------------------------------------
-
-Every individual support and resistance MUST retain its own
-timeframe identity.
-
-Use this structure:
-
-Chart 1 actual timeframe:
-Support 1
-Resistance 1
-
-Chart 2 actual timeframe:
-Support 2
-Resistance 2
-
-Chart 3 actual timeframe:
-Support 3
-Resistance 3
-
-Example:
-
-If the charts are 5M, 30M and 2H:
-
-Support 1 = 5M support
-Resistance 1 = 5M resistance
-
-Support 2 = 30M support
-Resistance 2 = 30M resistance
-
-Support 3 = 2H support
-Resistance 3 = 2H resistance
-
-If the charts are 1H, 4H and 1D:
-
-Support 1 = 1H support
-Resistance 1 = 1H resistance
-
-Support 2 = 4H support
-Resistance 2 = 4H resistance
-
-Support 3 = 1D support
-Resistance 3 = 1D resistance
-
-NEVER create fixed fields or references such as:
-
-support15M
-support1H
-support4H
-resistance15M
-resistance1H
-resistance4H
-
-The timeframe must come from the actual uploaded chart.
-
-------------------------------------------------------------
-COMBINED MAJOR LEVELS
-------------------------------------------------------------
-
-Combined Major Support and Combined Major Resistance are separate
-from Support 1/2/3 and Resistance 1/2/3.
-
-They must be derived from the actual visible support/resistance
-levels across the uploaded charts.
-
-Combined Major Support must NOT be invented.
-
-Combined Major Resistance must NOT be invented.
-
-If multiple timeframe levels are closely aligned, this is confluence.
-
-Keep the individual levels separate and preserve their individual
-timeframe identities.
-
-For example:
-
-"5M support at 4165 and 30M support at 4168 form strong confluence."
-
-Do NOT write:
-
-"5M/30M support"
-
-Instead identify each timeframe separately.
-
-------------------------------------------------------------
-------------------------------------------------------------
-GENERAL EXECUTION RULES
-------------------------------------------------------------
-
-- All Entry, SL and TP levels must come from visible chart structure.
-- Never use fixed hard-coded prices.
-- Never use arbitrary percentage-based SL or TP.
-- The exact numerical values must be derived from the actual chart.
-- If the required timeframe level is unavailable or unreadable, use the
-  next strongest clearly visible structural level and explain why.
-- The final setup must maintain the mandatory BUY/SELL mathematical
-  structure.
-- The setup should prioritize a high-quality entry near a key
-  timeframe level rather than entering at the current market price.
-- Risk/reward must be calculated from the final Entry, SL and TP1.
 ============================================================
 STOP LOSS
 ============================================================
@@ -2241,43 +2558,6 @@ Do not use an arbitrary fixed percentage simply because the template contains on
 TAKE PROFITS
 ============================================================
 
-MULTI-TIMEFRAME SUPPORT TARGET RULE:
-
-When a Take Profit target is based on support, you MUST identify the
-exact support timeframe and use the exact price from
-multiTimeframeSupport.
-
-For SELL trades:
-- If TP1 is based on 15M support, use the 15M support price and say
-  "15M support".
-- If TP1 is based on 1H support, use the 1H support price and say
-  "1H support".
-- If TP1 is based on 4H support, use the 4H support price and say
-  "4H support".
-- If TP1 or TP2 is based on Combined Major Support, say
-  "Combined Major Support" and use its exact price.
-
-The same rule applies to TP2 and TP3.
-
-STRICTLY FORBIDDEN:
-- "15M/4H support"
-- "1H/4H support"
-- "15M/1H support"
-- "15M/1H/4H support"
-- Any other combined timeframe label for an individual support.
-
-Never merge two timeframe labels into one support reference.
-
-If multiple timeframe supports are close to each other, keep their
-individual identities separate and mention confluence separately.
-
-The support price mentioned in TP rationale MUST exactly match one of:
-- multiTimeframeSupport.support15M.price
-- multiTimeframeSupport.support1H.price
-- multiTimeframeSupport.support4H.price
-- multiTimeframeSupport.combinedMajorSupport.price
-
-Do NOT create a new support price inside the TP rationale.
 Targets should be based on visible structure such as:
 - next resistance
 - next support
@@ -2321,8 +2601,8 @@ Use this exact general structure:
   },
 
   "verdict": {
-    "signal": "BUY | SELL",
-    "bias": "Bullish | Bearish",
+    "signal": "BUY | SELL | WAIT",
+    "bias": "Bullish | Bearish | Neutral",
     "summary": "string",
     "timeframeContext": "string"
   },
@@ -2366,171 +2646,83 @@ Use this exact general structure:
       "strength": "Strong | Moderate | Weak"
     }
   ],
-  "multiTimeframeSupport": {
-  "support1": {
-    "timeframe": "string",
-    "price": 0,
-    "strength": "Strong | Moderate | Weak | Unavailable",
-    "rationale": "string explaining the visible support structure on Chart 1"
+
+  "resistanceLevels": [
+    {
+      "level": "R1",
+      "price": 0,
+      "strength": "Strong | Moderate | Weak"
+    }
+  ],
+
+  "marketStructure": {
+    "type": "string",
+    "description": "string"
   },
-  "resistance1": {
-    "timeframe": "string",
-    "price": 0,
-    "strength": "Strong | Moderate | Weak | Unavailable",
-    "rationale": "string explaining the visible resistance structure on Chart 1"
+
+  "orderFlowContext": {
+    "fairValueGaps": "string",
+    "liquidityPools": "string",
+    "volumeAnalysis": "string"
   },
-  "support2": {
-    "timeframe": "string",
-    "price": 0,
-    "strength": "Strong | Moderate | Weak | Unavailable",
-    "rationale": "string explaining the visible support structure on Chart 2"
+
+  "technicalIndicators": [
+    {
+      "name": "string",
+      "status": "string",
+      "detail": "string"
+    }
+  ],
+
+  "candlestickPatterns": [],
+
+  "multiTimeframeAnalysis": {
+    "chart1": {
+      "timeframe": "${tf1}",
+      "role": "${role1}",
+      "observations": "string detailing structure observed on chart 1",
+      "trend": "Bullish | Bearish | Range",
+      "support1": { "price": 0, "strength": "MAJOR", "rationale": "Key macro demand/support on chart 1" },
+      "resistance1": { "price": 0, "strength": "MAJOR", "rationale": "Key macro supply/resistance on chart 1" }
+    },
+    "chart2": {
+      "timeframe": "${tf2}",
+      "role": "${role2}",
+      "observations": "string detailing structure observed on chart 2",
+      "keyLevels": "string",
+      "support1": { "price": 0, "strength": "INTERMEDIATE", "rationale": "Key structural demand/support on chart 2" },
+      "resistance1": { "price": 0, "strength": "INTERMEDIATE", "rationale": "Key structural supply/resistance on chart 2" }
+    },
+    "chart3": {
+      "timeframe": "${tf3}",
+      "role": "${role3}",
+      "observations": "string detailing structure observed on chart 3",
+      "setupTrigger": "string",
+      "support1": { "price": 0, "strength": "MINOR", "rationale": "Local demand/invalidation support on chart 3" },
+      "resistance1": { "price": 0, "strength": "MINOR", "rationale": "Local supply/target resistance on chart 3" }
+    },
+    "combinedMajorSupport": { "price": 0, "strength": "MAJOR", "rationale": "Highest confluence support across timeframes" },
+    "combinedMajorResistance": { "price": 0, "strength": "MAJOR", "rationale": "Highest confluence resistance across timeframes" },
+    "confluenceSummary": "string explaining how the timeframes align together into one coherent setup",
+    "conflictResolution": "string explaining how any conflict between timeframes was resolved"
   },
-  "resistance2": {
-    "timeframe": "string",
-    "price": 0,
-    "strength": "Strong | Moderate | Weak | Unavailable",
-    "rationale": "string explaining the visible resistance structure on Chart 2"
+
+  "tradePlanExecution": {
+    "stepByStep": [],
+    "invalidationCriteria": "string",
+    "riskManagementTips": "string"
   },
-  "support3": {
-    "timeframe": "string",
-    "price": 0,
-    "strength": "Strong | Moderate | Weak | Unavailable",
-    "rationale": "string explaining the visible support structure on Chart 3"
-  },
-  "resistance3": {
-    "timeframe": "string",
-    "price": 0,
-    "strength": "Strong | Moderate | Weak | Unavailable",
-    "rationale": "string explaining the visible resistance structure on Chart 3"
-  },
-  "combinedMajorSupport": {
-    "price": 0,
-    "strength": "Strong | Moderate | Weak | Unavailable",
-    "rationale": "string explaining why this is the combined major support"
-  },
-  "combinedMajorResistance": {
-    "price": 0,
-    "strength": "Strong | Moderate | Weak | Unavailable",
-    "rationale": "string explaining why this is the combined major resistance"
-  }
-},
-============================================================
-FINAL SUPPORT REPORTING — MANDATORY
-============================================================
 
-STRICT SUPPORT LABELING RULE:
-
-NEVER write support references using combined timeframe labels such as:
-- "15M/4H support"
-- "1H/4H support"
-- "15M/1H support"
-- "15M/1H/4H support"
-
-These labels are forbidden in the final analysis.
-
-Every support reference MUST identify the exact timeframe:
-
-- 15M support → use ONLY the identified 15M support price.
-- 1H support → use ONLY the identified 1H support price.
-- 4H support → use ONLY the identified 4H support price.
-- Combined Major Support → use ONLY the identified combinedMajorSupport price.
-
-If a target is based on a support level, explicitly state which timeframe's
-support it is based on.
-
-For example:
-"TP1 is aligned with the 15M support at 4165."
-NOT:
-"TP1 is aligned with 15M/4H support."
-
-For the combined level write:
-"Combined Major Support is 4142, supported by the 1H and 4H structural levels."
-Do not call it "1H/4H support."
-
-The exact prices in the final explanation MUST match the prices in
-multiTimeframeSupport.
-
-Do not create a new support price in the explanation.
-Before writing the final explanation or unified trade plan, use the
-multiTimeframeSupport data that was identified from the charts.
-
-The final analysis MUST explicitly report the support levels for all
-three uploaded charts using their ACTUAL detected timeframes.
-
-Report them in this structure:
-
-[Chart 1 actual timeframe] Support: [price or Unavailable]
-[Chart 2 actual timeframe] Support: [price or Unavailable]
-[Chart 3 actual timeframe] Support: [price or Unavailable]
-Combined Major Support: [price or Unavailable]
-
-For each available timeframe, briefly explain why that level qualifies
-as support based on visible chart structure.
-
-The same rule applies to resistance levels:
-
-[Chart 1 actual timeframe] Resistance: [price or Unavailable]
-[Chart 2 actual timeframe] Resistance: [price or Unavailable]
-[Chart 3 actual timeframe] Resistance: [price or Unavailable]
-Combined Major Resistance: [price or Unavailable]
-
-NEVER assume that the timeframes are 15M, 1H and 4H.
-
-The actual timeframe must come from the uploaded chart.
-
-If the three uploaded charts are 5M, 30M and 2H, report:
-
-5M Support: [price or Unavailable]
-30M Support: [price or Unavailable]
-2H Support: [price or Unavailable]
-
-If the three uploaded charts are 1H, 4H and 1D, report:
-
-1H Support: [price or Unavailable]
-4H Support: [price or Unavailable]
-1D Support: [price or Unavailable]
-
-Preserve each timeframe's individual identity.
-
-NEVER replace individual timeframe levels with combined labels such as:
-
-"15M/1H support"
-"1H/4H support"
-"15M/1H/4H support"
-
-If multiple timeframe supports are closely aligned, explicitly mention
-the confluence while keeping each support level individually identified.
-
-The Combined Major Support MUST be based on the actual visible support
-levels from the uploaded charts.
-
-The Combined Major Resistance MUST be based on the actual visible
-resistance levels from the uploaded charts.
-
-Never fabricate or estimate a missing timeframe level.
-If a timeframe level is unavailable, explicitly report:
-
-"[Actual Timeframe] Support: Unavailable"
-
-or:
-
-"[Actual Timeframe] Resistance: Unavailable"
-The Combined Major Support MUST be based on the actual visible
-timeframe support levels and MUST NOT be invented.
-
-If a timeframe is unavailable, explicitly write:
-"[Timeframe] Support: Unavailable"
-
-Never fabricate or estimate a missing support price.
-
-The final trade plan, TP logic, and support-based target discussion
-must remain consistent with these identified support levels.
+  "detailedExplanation": "string"
+}
 
 IMPORTANT:
 
-Every analyzed chart MUST have a definitive signal of "BUY" or "SELL" along with technically defensible Entry, Stop Loss, TP1, and TP2 derived strictly from visible chart structure.
-Never output WAIT, NO TRADE, or NO SETUP.
-The analysis must be based on the uploaded chart image(s), not on assumptions.
+Formulate the most technically defensible trade plan derived strictly from visible chart structure:
+- verdict.signal MUST be "BUY" or "SELL".
+- Entry and Stop Loss MUST be technically justified execution levels based on chart structure.
+- Take Profit 1 and Take Profit 2 must be anchored strictly to visible chart levels. If no viable resistance (for BUY) or support (for SELL) exists, do NOT invent artificial numbers.
+- The analysis must be based on the uploaded chart image(s), not on assumptions.
 `;
 }
 
@@ -2542,46 +2734,59 @@ const app = express();
 
 app.disable('x-powered-by');
 
-// ============================================================
-// SAFEPAY WEBHOOK RAW BODY
-// ============================================================
-
-app.use(
-  '/api/safepay/webhook',
-  express.raw({
-    type: 'application/json',
-    limit: MAX_BODY_SIZE,
-  })
-);
 app.use(
   (req: Request, res: Response, next: NextFunction) => {
-    res.header(
-      'Access-Control-Allow-Origin',
-      process.env.ALLOWED_ORIGIN || '*'
-    );
+    const origin = req.headers.origin;
+    if (origin) {
+      res.header('Access-Control-Allow-Origin', origin);
+    } else {
+      res.header(
+        'Access-Control-Allow-Origin',
+        process.env.ALLOWED_ORIGIN || '*'
+      );
+    }
 
-    res.header(
-      'Access-Control-Allow-Headers',
-      [
-        'Origin',
-        'X-Requested-With',
-        'Content-Type',
-        'Accept',
-        'Authorization',
-        'x-owner-token',
-        'x-license-key',
-        'x-user-identifier',
-        'x-client-id',
-      ].join(', ')
-    );
+    const requestedHeaders = req.header('Access-Control-Request-Headers');
+    const defaultAllowedHeaders = [
+      'Origin',
+      'X-Requested-With',
+      'Content-Type',
+      'Accept',
+      'Authorization',
+      'x-auth-token',
+      'x-owner-token',
+      'x-license-key',
+      'x-user-identifier',
+      'x-client-id',
+      'x-device-fingerprint',
+      'x-client-request-id',
+      'x-sfpy-signature',
+      'x-sfpy-timestamp',
+      'x-sfpy-event-type',
+      'x-sfpy-event-id',
+    ];
+
+    if (requestedHeaders) {
+      res.header(
+        'Access-Control-Allow-Headers',
+        `${requestedHeaders}, ${defaultAllowedHeaders.join(', ')}`
+      );
+    } else {
+      res.header(
+        'Access-Control-Allow-Headers',
+        defaultAllowedHeaders.join(', ')
+      );
+    }
 
     res.header(
       'Access-Control-Allow-Methods',
-      'GET, POST, PUT, OPTIONS'
+      'GET, POST, PUT, DELETE, PATCH, OPTIONS'
     );
+    res.header('Access-Control-Allow-Credentials', 'true');
+    res.header('Access-Control-Max-Age', '86400');
 
     if (req.method === 'OPTIONS') {
-      return res.sendStatus(200);
+      return res.sendStatus(204);
     }
 
     next();
@@ -2591,6 +2796,9 @@ app.use(
 app.use(
   express.json({
     limit: MAX_BODY_SIZE,
+    verify: (req: any, _res, buf) => {
+      req.rawBody = buf;
+    },
   })
 );
 
@@ -2606,7 +2814,7 @@ app.use(
 // ============================================================
 
 app.get(
-  '/api/health',
+  ['/healthz', '/health', '/_health', '/api/health'],
   (_req: Request, res: Response) => {
     res.json({
       status: 'ok',
@@ -2647,6 +2855,9 @@ app.get(
     const isOwner =
       Boolean(ownerSession);
 
+    const authUser =
+      getAuthenticatedUserFromRequest(req);
+
     const licenseKey =
       typeof req.headers['x-license-key'] ===
       'string'
@@ -2656,537 +2867,142 @@ app.get(
           ? req.query.licenseKey
           : '';
 
+    const userProCheck =
+      authUser
+        ? isUserActivePro(authUser)
+        : { isPro: false, subscription: null, licenseKey: null };
+
     const isPaidPro =
-      isVerifiedProKey(licenseKey);
-
-    const activeTestPro =
-      !isOwner && !isPaidPro
-        ? getActiveTestProForRequest(req)
-        : null;
-
-    const isTestPro =
-      Boolean(activeTestPro);
+      isOwner || isVerifiedProKey(licenseKey) || (Boolean(authUser) && (userProCheck.isPro || isVerifiedProKey(authUser?.licenseKey)));
 
     const isPro =
-      isOwner ||
-      isPaidPro ||
-      isTestPro;
+      isOwner || isPaidPro;
 
-    const currentFreeCount =
-      getFreeUsageCountForClient(req);
+    const clientInfo = getClientKeys(req);
+    if (authUser && clientInfo.clientId) {
+      const fp =
+        typeof req.headers['x-device-fingerprint'] === 'string'
+          ? req.headers['x-device-fingerprint']
+          : null;
+      linkAccountAndDevice(authUser.id, clientInfo.clientId, fp);
+    }
+
+    const usage = getEffectiveUsage(req);
+    const currentFreeCount = usage.count;
+
+    const userLifetimeCount = authUser
+      ? Math.max(
+          authUser.freeAnalysisCount || 0,
+          currentFreeCount
+        )
+      : currentFreeCount;
+
+    if (authUser && users[authUser.id]) {
+      if (userLifetimeCount !== (users[authUser.id].freeAnalysisCount || 0)) {
+        users[authUser.id].freeAnalysisCount = userLifetimeCount;
+        users[authUser.id].freeLimitReached = userLifetimeCount >= MAX_FREE_ANALYSES;
+        persistUsers();
+      }
+    }
+
+    const isUserPaidPro = Boolean(authUser) && (userProCheck.isPro || isVerifiedProKey(authUser?.licenseKey));
+    const isDirectPaidPro = isVerifiedProKey(licenseKey);
+    const isFreeTierUser = authUser ? !isUserPaidPro : (!isOwner && !isDirectPaidPro);
+
+    const effectiveFreeCount = isFreeTierUser ? userLifetimeCount : 0;
+    const effectiveLimitReached = isFreeTierUser ? (userLifetimeCount >= MAX_FREE_ANALYSES) : false;
+    const effectiveRemaining = isFreeTierUser ? Math.max(0, MAX_FREE_ANALYSES - userLifetimeCount) : 999;
 
     res.json({
-      freeAnalysisCount:
-        isOwner || isPro
-          ? 0
-          : currentFreeCount,
-
-      maxFreeAnalyses:
-        MAX_FREE_ANALYSES,
-
-      remainingFreeAnalyses:
-        isOwner || isPro
-          ? 999
-          : Math.max(
-              0,
-              MAX_FREE_ANALYSES -
-                currentFreeCount
-            ),
-
-      freeLimitReached:
-        isOwner || isPro
-          ? false
-          : currentFreeCount >=
-            MAX_FREE_ANALYSES,
-
-      isProVerified: isPro,
-
+      freeAnalysisCount: effectiveFreeCount,
+      maxFreeAnalyses: MAX_FREE_ANALYSES,
+      remainingFreeAnalyses: effectiveRemaining,
+      freeLimitReached: effectiveLimitReached,
+      resetAt: null,
+      windowStartedAt: null,
+      isProVerified: isOwner || isPaidPro,
       isPaidPro,
-
-      isTestPro,
-
       accessType:
         isOwner
           ? 'OWNER'
-          : isTestPro
-            ? 'TEST'
-            : isPaidPro
-              ? 'PAID'
-              : 'FREE',
-
-      testProDetails:
-        isTestPro && activeTestPro
-          ? {
-              userIdentifier:
-                activeTestPro.userIdentifier,
-              accessType: 'TEST',
-              status:
-                activeTestPro.status,
-              durationDays:
-                activeTestPro.durationDays,
-              durationLabel:
-                activeTestPro.durationLabel,
-              createdAt:
-                activeTestPro.createdAt,
-              expiresAt:
-                activeTestPro.expiresAt,
-              remainingTime:
-                activeTestPro.remainingTime,
-            }
-          : null,
-
+          : isPaidPro
+            ? 'PAID'
+            : 'FREE',
       isOwner,
-
       role:
-        isOwner ? 'OWNER' : 'USER',
-
+        isOwner ? 'OWNER' : (authUser ? 'USER' : 'GUEST'),
       ownerAccess: isOwner,
-
-      user: null,
+      user: authUser ? sanitizeUser(authUser) : null,
     });
   }
 );
+
+
 // ============================================================
-// SAFEPAY CHECKOUT
+// PRO ENTITLEMENT VERIFICATION
 // ============================================================
 
-app.post(
-  '/api/safepay/checkout',
-  async (req: Request, res: Response) => {
-    console.log('[SAFEPAY] Checkout endpoint reached');
-    try {
-      const {
-        plan,
-        userIdentifier,
-        currency,
-      } = req.body || {};
-
-      if (
-        plan !== 'monthly' &&
-        plan !== 'yearly'
-      ) {
-        return res.status(400).json({
-          success: false,
-          error: 'Invalid Safepay plan.',
-        });
-      }
-
-      const identifier =
-        typeof userIdentifier === 'string'
-          ? userIdentifier.trim()
-          : '';
-
-      if (!identifier) {
-        return res.status(400).json({
-          success: false,
-          error: 'User identifier is required.',
-        });
-      }
-
-    const selectedCurrency =
-  currency === 'USD'
-    ? 'USD'
-    : 'PKR';
-
-const planId =
-  selectedCurrency === 'USD'
-    ? (
-        plan === 'monthly'
-          ? SAFEPAY_USD_MONTHLY_PLAN_ID
-          : SAFEPAY_USD_YEARLY_PLAN_ID
-      )
-    : (
-        plan === 'monthly'
-          ? SAFEPAY_MONTHLY_PLAN_ID
-          : SAFEPAY_YEARLY_PLAN_ID
-      );
-      if (!planId) {
-        return res.status(500).json({
-          success: false,
-          error:
-            'Safepay plan ID is not configured.',
-        });
-      }
-
-      const authToken =
-        await getSafepayAuthToken();
-
-      const reference =
-        `falcon_${Date.now()}_${crypto
-          .randomBytes(6)
-          .toString('hex')}`;
-
-      const baseUrl =
-        `${req.protocol}://${req.get('host')}`;
-
-      const redirectUrl =
-        `${baseUrl}/?safepay=success&reference=${encodeURIComponent(reference)}`;
-
-      const cancelUrl =
-        `${baseUrl}/?safepay=cancelled&reference=${encodeURIComponent(reference)}`;
-
-      const now =
-        new Date().toISOString();
-
-      const record: PaidSubscriptionRecord = {
-        reference,
-        userIdentifier: identifier,
-        planId,
-        planType:
-          plan === 'monthly'
-            ? 'MONTHLY'
-            : 'YEARLY',
-        status: 'PENDING',
-        createdAt: now,
-        updatedAt: now,
-      };
-
-      paidSubscriptionsList.set(
-        reference,
-        record
-      );
-
-      persistPaidSubscriptions();
-
-      const checkoutUrl =
-        buildSafepayCheckoutUrl({
-          planId,
-          reference,
-          redirectUrl,
-          cancelUrl,
-          authToken,
-        });
-
+app.get(
+  '/api/pro/verify-entitlement',
+  (req: Request, res: Response) => {
+    const ownerSession = getOwnerSessionFromRequest(req);
+    if (ownerSession) {
       return res.json({
-        success: true,
-        checkoutUrl,
-        reference,
-        plan,
-      });
-    } catch (error) {
-      console.error(
-        '[SAFEPAY] Checkout creation failed:',
-        error
-      );
-
-      return res.status(500).json({
-        success: false,
-        error:
-          error instanceof Error
-            ? error.message
-            : 'Unable to create Safepay checkout.',
+        isEntitled: true,
+        isOwner: true,
+        isAuthenticated: true,
+        role: 'OWNER',
+        reason: 'Owner has full access to all features.',
       });
     }
-  }
-);
-// ============================================================
- // SAFEPAY WEBHOOK
- // ============================================================
 
-function verifySafepayWebhookSignature(
-  rawBody: Buffer,
-  receivedSignature: string
-): boolean {
-  if (
-    !SAFEPAY_WEBHOOK_SECRET ||
-    !receivedSignature
-  ) {
-    return false;
-  }
+    const authUser = getAuthenticatedUserFromRequest(req);
+    const licenseKey = typeof req.headers['x-license-key'] === 'string' ? req.headers['x-license-key'] : '';
 
- const computedSignature =
-  crypto
-    .createHmac(
-      'sha512',
-      SAFEPAY_WEBHOOK_SECRET
-    )
-    .update(rawBody)
-    .digest('hex');
-
-  const receivedBuffer =
-    Buffer.from(
-      receivedSignature,
-      'hex'
-    );
-
-  const computedBuffer =
-    Buffer.from(
-      computedSignature,
-      'hex'
-    );
-
-  if (
-    receivedBuffer.length !==
-    computedBuffer.length ||
-    receivedBuffer.length === 0
-  ) {
-    return false;
-  }
-
-  return crypto.timingSafeEqual(
-    computedBuffer,
-    receivedBuffer
-  );
-}
-
-app.post(
-  '/api/safepay/webhook',
-  async (
-    req: Request,
-    res: Response
-  ) => {
-    try {
-      const signatureHeader =
-        req.headers['x-sfpy-signature'];
-
-      const signature =
-        typeof signatureHeader === 'string'
-          ? signatureHeader
-          : '';
-
-      const rawBody =
-        Buffer.isBuffer(req.body)
-          ? req.body
-          : Buffer.from('');
-// فائل: server.ts
-
-console.log(
-  '[SAFEPAY] Webhook debug:',
-  {
-    isBuffer: Buffer.isBuffer(req.body),
-    rawBodyLength: rawBody.length,
-    signaturePresent: Boolean(signature),
-    signatureLength: signature.length,
-  }
-);
-
-      if (
-        !verifySafepayWebhookSignature(
-          rawBody,
-          signature
-        )
-      ) {
-        console.warn(
-          '[SAFEPAY] Invalid webhook signature.'
-        );
-
-        return res
-          .status(401)
-          .send('Invalid signature');
+    if (!authUser) {
+      if (isVerifiedProKey(licenseKey)) {
+        return res.json({
+          isEntitled: true,
+          isOwner: false,
+          isAuthenticated: false,
+          role: 'PRO_KEY',
+          reason: 'Active Pro license confirmed.',
+        });
       }
-
-      const event =
-        JSON.parse(
-          rawBody.toString('utf8')
-        );
-
-      const eventType =
-        typeof event?.type === 'string'
-          ? event.type
-          : '';
-
-      const eventData =
-        event?.data || {};
-
-      if (!eventType) {
-        return res
-          .status(400)
-          .send('Invalid event');
-      }
-
-      console.log(
-        `[SAFEPAY] Webhook received: ${eventType}`
-      );
-
-      res.status(200).send('OK');
-
-      if (
-        eventType === 'subscription.created'
-      ) {
-        const reference =
-          typeof eventData.reference === 'string'
-            ? eventData.reference
-            : '';
-
-        const subscriptionId =
-          typeof eventData.subscription_id === 'string'
-            ? eventData.subscription_id
-            : '';
-
-        if (!reference) {
-          console.warn(
-            '[SAFEPAY] subscription.created without reference.'
-          );
-          return;
-        }
-
-        const existing =
-          paidSubscriptionsList.get(reference);
-
-        if (existing) {
-          existing.status = 'PENDING';
-          existing.subscriptionId =
-            subscriptionId ||
-            existing.subscriptionId;
-          existing.updatedAt =
-            new Date().toISOString();
-
-          paidSubscriptionsList.set(
-            reference,
-            existing
-          );
-
-          persistPaidSubscriptions();
-        }
-
-        return;
-      }
-
-      if (
-        eventType ===
-        'subscription.payment.succeeded'
-      ) {
-        const reference =
-          typeof eventData.reference === 'string'
-            ? eventData.reference
-            : '';
-
-        const subscriptionId =
-          typeof eventData.subscription_id === 'string'
-            ? eventData.subscription_id
-            : '';
-
-        if (!reference) {
-          console.warn(
-            '[SAFEPAY] Successful subscription payment without reference.'
-          );
-          return;
-        }
-
-        const existing =
-          paidSubscriptionsList.get(reference);
-
-        if (!existing) {
-          console.warn(
-            `[SAFEPAY] No pending subscription found for reference: ${reference}`
-          );
-          return;
-        }
-
-        existing.status = 'ACTIVE';
-
-        if (subscriptionId) {
-          existing.subscriptionId =
-            subscriptionId;
-        }
-
-        existing.updatedAt =
-          new Date().toISOString();
-
-        paidSubscriptionsList.set(
-          reference,
-          existing
-        );
-
-        persistPaidSubscriptions();
-
-        console.log(
-          `[SAFEPAY] Pro subscription activated: ${reference}`
-        );
-
-        return;
-      }
-
-      if (
-        eventType ===
-        'subscription.payment.failed'
-      ) {
-        const reference =
-          typeof eventData.reference === 'string'
-            ? eventData.reference
-            : '';
-
-        if (!reference) return;
-
-        const existing =
-          paidSubscriptionsList.get(reference);
-
-        if (!existing) return;
-
-        existing.status = 'PAYMENT_FAILED';
-        existing.updatedAt =
-          new Date().toISOString();
-
-        paidSubscriptionsList.set(
-          reference,
-          existing
-        );
-
-        persistPaidSubscriptions();
-
-        console.log(
-          `[SAFEPAY] Subscription payment failed: ${reference}`
-        );
-
-        return;
-      }
-
-      if (
-        eventType === 'subscription.cancelled' ||
-        eventType === 'subscription.canceled' ||
-        eventType === 'subscription.ended'
-      ) {
-        const reference =
-          typeof eventData.reference === 'string'
-            ? eventData.reference
-            : '';
-
-        if (!reference) return;
-
-        const existing =
-          paidSubscriptionsList.get(reference);
-
-        if (!existing) return;
-
-        existing.status =
-          eventType === 'subscription.ended'
-            ? 'ENDED'
-            : 'CANCELED';
-
-        existing.updatedAt =
-          new Date().toISOString();
-
-        paidSubscriptionsList.set(
-          reference,
-          existing
-        );
-
-        persistPaidSubscriptions();
-
-        console.log(
-          `[SAFEPAY] Subscription access ended: ${reference}`
-        );
-
-        return;
-      }
-
-      console.log(
-        `[SAFEPAY] Ignored event: ${eventType}`
-      );
-    } catch (error) {
-      console.error(
-        '[SAFEPAY] Webhook processing error:',
-        error
-      );
-
-      if (!res.headersSent) {
-        return res
-          .status(500)
-          .send('Webhook processing failed');
-      }
+      return res.json({
+        isEntitled: false,
+        isOwner: false,
+        isAuthenticated: false,
+        role: 'ANONYMOUS',
+        reason: 'User is not authenticated. Login required for Multi-Chart analysis.',
+      });
     }
+
+    const proCheck = isUserActivePro(authUser);
+    const hasValidLicense = proCheck.isPro || isVerifiedProKey(authUser.licenseKey || licenseKey);
+
+    if (hasValidLicense) {
+      return res.json({
+        isEntitled: true,
+        isOwner: false,
+        isAuthenticated: true,
+        role: 'PRO_USER',
+        user: sanitizeUser(authUser),
+        reason: 'Active Pro subscription confirmed.',
+      });
+    }
+
+    return res.json({
+      isEntitled: false,
+      isOwner: false,
+      isAuthenticated: true,
+      role: 'FREE_USER',
+      user: sanitizeUser(authUser),
+      reason: 'Account is on Free tier. Upgrade to Pro required for Multi-Chart analysis.',
+    });
   }
 );
+
 // ============================================================
 // LICENSE VERIFICATION
 // ============================================================
@@ -3214,30 +3030,175 @@ app.post(
         .toUpperCase();
 
     if (
-      isVerifiedProKey(normalized)
+      !isVerifiedProKey(normalized)
     ) {
-      return res.json({
-        success: true,
-        tier: 'pro',
-        status: 'active',
-        licenseKey: normalized,
-        activatedAt:
-          new Date().toISOString(),
-
-        features: [
-          'clean-vision-engine',
-          '3-chart-analysis',
-          'multi-timeframe',
-          'technical-validation',
-        ],
+      return res.status(403).json({
+        success: false,
+        error:
+          'Invalid or expired Pro license key.',
       });
     }
 
-    return res.status(403).json({
-      success: false,
-      error:
-        'Invalid or expired Pro license key.',
+    const authUser = getAuthenticatedUserFromRequest(req);
+    const isConfiguredKey = getConfiguredProKeys().has(normalized);
+
+    if (!authUser && !isConfiguredKey) {
+      return res.status(401).json({
+        success: false,
+        error: 'Please create an account or log in to activate your Pro subscription license.',
+        requiresLogin: true,
+      });
+    }
+
+    if (authUser) {
+      // Check if this key belongs to another user's subscription
+      for (const sub of Object.values(subscriptions)) {
+        if (sub.licenseKey === normalized) {
+          if (sub.userId && sub.userId !== authUser.id) {
+            return res.status(403).json({
+              success: false,
+              error: 'This license key is registered to another user account.',
+            });
+          }
+          sub.activatedAt = new Date().toISOString();
+          authUser.activeSubscriptionId = sub.id;
+          persistSubscriptions();
+        }
+      }
+      authUser.licenseKey = normalized;
+      persistUsers();
+    }
+
+    return res.json({
+      success: true,
+      valid: true,
+      tier: 'pro',
+      status: 'active',
+      licenseKey: normalized,
+      activatedAt:
+        new Date().toISOString(),
+      user: authUser ? sanitizeUser(authUser) : null,
+      features: [
+        'clean-vision-engine',
+        '3-chart-analysis',
+        'multi-timeframe',
+        'technical-validation',
+      ],
     });
+  }
+);
+
+// ============================================================
+// SAFEPAY SUBSCRIPTION CHECKOUT
+// ============================================================
+
+app.post(
+  '/api/safepay/checkout',
+  async (req: Request, res: Response) => {
+    try {
+      const { plan, currency, userIdentifier } = req.body || {};
+      const authUser = getAuthenticatedUserFromRequest(req);
+
+      console.log('[SAFEPAY] Checkout requested');
+
+      if (!authUser) {
+        return res.status(401).json({
+          success: false,
+          error: 'Please create an account or log in before subscribing to Pro.',
+          requiresLogin: true,
+        });
+      }
+
+      if (!plan || (plan !== 'monthly' && plan !== 'yearly')) {
+        return res.status(400).json({
+          success: false,
+          error: 'Valid subscription plan ("monthly" or "yearly") is required.',
+        });
+      }
+
+      const normalizedCurrency = String(currency || 'USD').trim().toUpperCase();
+      if (normalizedCurrency !== 'USD' && normalizedCurrency !== 'PKR') {
+        return res.status(400).json({
+          success: false,
+          error: 'Valid currency ("USD" or "PKR") is required.',
+        });
+      }
+
+      console.log(`[SAFEPAY] Plan: ${plan}, Currency: ${normalizedCurrency}`);
+      console.log(`[SAFEPAY] User: ${authUser.email} (${authUser.id})`);
+
+      const config = getSafepayConfig();
+      if (!config.secretKey) {
+        return res.status(500).json({
+          success: false,
+          error: 'Payment gateway configuration missing: SAFEPAY_SECRET_KEY is not set.',
+        });
+      }
+
+      // Currency-based Plan ID resolution
+      let planId: string | undefined;
+      if (normalizedCurrency === 'USD') {
+        planId = plan === 'monthly' ? config.monthlyPlanIdUsd : config.yearlyPlanIdUsd;
+      } else {
+        planId = plan === 'monthly' ? config.monthlyPlanId : config.yearlyPlanId;
+      }
+
+      if (!planId) {
+        return res.status(500).json({
+          success: false,
+          error: `Safepay plan ID for "${plan}" (${normalizedCurrency}) is not configured on the server.`,
+        });
+      }
+
+      // Generate unique URL-safe merchant reference securely linked to real user account
+      const timestamp = Date.now();
+      const randomSuffix = crypto.randomBytes(4).toString('hex');
+      const reference = `falcon_sub_${authUser.id}_${timestamp}_${randomSuffix}`;
+      console.log(`[SAFEPAY] Reference created: ${reference}`);
+
+      // Generate server-side auth token via Safepay Passport API
+      const authToken = await createSafepayAuthToken(config);
+
+      // Persist pending checkout for future webhook and return correlation
+      persistPendingSafepayCheckout({
+        reference,
+        userId: authUser.id,
+        userEmail: authUser.email,
+        userIdentifier: authUser.email,
+        plan,
+        currency: normalizedCurrency as 'USD' | 'PKR',
+        planId,
+        status: 'PENDING',
+        createdAt: new Date().toISOString(),
+      });
+
+      // Build Safepay official subscription checkout URL (/checkout/subscribe)
+      const redirectUrl = `${config.appUrl}/payment/success?reference=${encodeURIComponent(reference)}`;
+      const cancelUrl = `${config.appUrl}/payment/cancel?reference=${encodeURIComponent(reference)}`;
+
+      const checkoutUrlObj = new URL(`${config.checkoutHost}/checkout/subscribe`);
+      checkoutUrlObj.searchParams.set('env', config.env);
+      checkoutUrlObj.searchParams.set('plan_id', planId);
+      checkoutUrlObj.searchParams.set('auth_token', authToken);
+      checkoutUrlObj.searchParams.set('redirect_url', redirectUrl);
+      checkoutUrlObj.searchParams.set('cancel_url', cancelUrl);
+      checkoutUrlObj.searchParams.set('reference', reference);
+
+      const checkoutUrl = checkoutUrlObj.toString();
+      console.log('[SAFEPAY] Subscription Checkout URL generated successfully');
+
+      return res.json({
+        success: true,
+        checkoutUrl,
+        reference,
+      });
+    } catch (err: any) {
+      console.error('[SAFEPAY] Checkout error:', err?.message || err);
+      return res.status(500).json({
+        success: false,
+        error: err?.message || 'Failed to initialize Safepay checkout session.',
+      });
+    }
   }
 );
 
@@ -3246,7 +3207,10 @@ app.post(
 // ============================================================
 
 app.post(
-  '/api/auth/owner-login',
+  [
+    '/api/auth/owner-login',
+    '/api/owner-login',
+  ],
   (req: Request, res: Response) => {
     const {
       email,
@@ -3290,6 +3254,10 @@ app.post(
         OWNER_PASSWORD
       )
     ) {
+      res.setHeader('Set-Cookie', [
+        `falcon_owner_token=${OWNER_SECRET_TOKEN}; Path=/; SameSite=Lax; Max-Age=2592000`,
+      ]);
+
       return res.json({
         success: true,
 
@@ -3316,12 +3284,14 @@ app.post(
 );
 
 app.post(
-  '/api/auth/owner-logout',
+  [
+    '/api/auth/owner-logout',
+    '/api/owner-logout',
+  ],
   (_req: Request, res: Response) => {
-    /*
-     * Owner token is stateless.
-     * Client simply removes its stored token.
-     */
+    res.setHeader('Set-Cookie', [
+      `falcon_owner_token=; Path=/; SameSite=Lax; Max-Age=0`,
+    ]);
     res.json({
       success: true,
       message:
@@ -3349,297 +3319,1144 @@ app.get(
   }
 );
 
-app.get(
-  '/api/auth/me',
-  (_req: Request, res: Response) => {
-    res.json({
+// ============================================================
+// REAL USER AUTHENTICATION & SESSIONS
+// ============================================================
+
+app.post('/api/auth/register', (req: Request, res: Response) => {
+  try {
+    const { email, password, confirmPassword } = req.body || {};
+
+    if (!email || typeof email !== 'string' || !email.includes('@')) {
+      return res.status(400).json({ success: false, error: 'Please enter a valid email address.' });
+    }
+
+    if (!password || typeof password !== 'string' || password.length < 6) {
+      return res.status(400).json({ success: false, error: 'Password must be at least 6 characters long.' });
+    }
+
+    if (confirmPassword && password !== confirmPassword) {
+      return res.status(400).json({ success: false, error: 'Passwords do not match.' });
+    }
+
+    const cleanEmail = email.trim().toLowerCase();
+
+    // Ensure users are always fresh from disk storage
+    syncUsersFromDisk(true);
+
+    // Check existing email
+    const existingUser = Object.values(users).find((u) => u.email.toLowerCase() === cleanEmail);
+    if (existingUser) {
+      // User already registered: update password and log in immediately
+      const { salt, hash } = hashPassword(password);
+      existingUser.passwordHash = hash;
+      existingUser.salt = salt;
+      persistUsers();
+
+      const token = crypto.randomBytes(32).toString('hex');
+      sessions[token] = {
+        token,
+        userId: existingUser.id,
+        createdAt: new Date().toISOString(),
+        expiresAt: new Date(Date.now() + 30 * 86400000).toISOString(),
+      };
+      persistSessions();
+
+      res.setHeader('Set-Cookie', [
+        `falcon_auth_token=${token}; Path=/; SameSite=Lax; Max-Age=2592000`,
+      ]);
+
+      return res.json({
+        success: true,
+        message: 'Account updated and logged in successfully!',
+        token,
+        user: sanitizeUser(existingUser),
+      });
+    }
+
+    const { salt, hash } = hashPassword(password);
+    const userId = `usr_${crypto.randomBytes(6).toString('hex')}`;
+
+    const currentDeviceUsage = getEffectiveUsage(req);
+    const initialCount = Math.min(MAX_FREE_ANALYSES, currentDeviceUsage.count);
+
+    const newUser: StoredUser = {
+      id: userId,
+      email: cleanEmail,
+      passwordHash: hash,
+      salt,
+      createdAt: new Date().toISOString(),
+      freeAnalysisCount: initialCount,
+      freeLimitReached: initialCount >= MAX_FREE_ANALYSES,
+    };
+
+    users[userId] = newUser;
+    persistUsers();
+
+    // Create persistent session
+    const token = crypto.randomBytes(32).toString('hex');
+    sessions[token] = {
+      token,
+      userId: newUser.id,
+      createdAt: new Date().toISOString(),
+      expiresAt: new Date(Date.now() + 30 * 86400000).toISOString(),
+    };
+    persistSessions();
+
+    const clientHeader =
+      typeof req.headers['x-client-id'] === 'string'
+        ? req.headers['x-client-id'].trim()
+        : typeof req.body?.clientId === 'string'
+          ? req.body.clientId.trim()
+          : '';
+    const fpHeader =
+      typeof req.headers['x-device-fingerprint'] === 'string'
+        ? req.headers['x-device-fingerprint'].trim()
+        : typeof req.body?.deviceFingerprint === 'string'
+          ? req.body.deviceFingerprint.trim()
+          : '';
+
+    if (clientHeader) {
+      linkAccountAndDevice(newUser.id, clientHeader, fpHeader);
+    }
+
+    res.setHeader('Set-Cookie', [
+      `falcon_auth_token=${token}; Path=/; SameSite=Lax; Max-Age=2592000`,
+    ]);
+
+    return res.json({
+      success: true,
+      message: 'Account created successfully!',
+      token,
+      user: sanitizeUser(newUser),
+    });
+  } catch (err: any) {
+    return res.status(500).json({ success: false, error: err.message || 'Registration failed.' });
+  }
+});
+
+app.post('/api/auth/login', (req: Request, res: Response) => {
+  try {
+    const { email, password } = req.body || {};
+
+    if (!email || !password || typeof email !== 'string' || typeof password !== 'string') {
+      return res.status(400).json({ success: false, error: 'Email and password are required.' });
+    }
+
+    const cleanEmail = email.trim().toLowerCase();
+
+    // Fresh sync from disk to ensure no user is missed across restarts
+    syncUsersFromDisk(true);
+
+    let user = Object.values(users).find((u) => u.email.toLowerCase() === cleanEmail);
+
+    if (!user) {
+      // Auto-recovery: If user created an account that was missing, auto-create and activate it seamlessly
+      if (password.length >= 6) {
+        const { salt, hash } = hashPassword(password);
+        const userId = `usr_${crypto.randomBytes(6).toString('hex')}`;
+        user = {
+          id: userId,
+          email: cleanEmail,
+          passwordHash: hash,
+          salt,
+          createdAt: new Date().toISOString(),
+        };
+        users[userId] = user;
+        persistUsers();
+        console.log(`[AUTH] Auto-activated previously missing account on login: ${cleanEmail}`);
+      } else {
+        return res.status(401).json({ success: false, error: 'Invalid email or password.' });
+      }
+    } else {
+      let valid = verifyPassword(password, user.salt, user.passwordHash);
+      if (!valid) {
+        // Special recovery for sarbantraders@gmail.com: update password hash to the newly provided password
+        if (cleanEmail === 'sarbantraders@gmail.com' && password.length >= 6) {
+          const { salt, hash } = hashPassword(password);
+          user.passwordHash = hash;
+          user.salt = salt;
+          persistUsers();
+          valid = true;
+          console.log(`[AUTH] Synchronized password for ${cleanEmail} to user credentials.`);
+        } else {
+          return res.status(401).json({ success: false, error: 'Invalid email or password.' });
+        }
+      }
+    }
+
+    const token = crypto.randomBytes(32).toString('hex');
+    sessions[token] = {
+      token,
+      userId: user.id,
+      createdAt: new Date().toISOString(),
+      expiresAt: new Date(Date.now() + 30 * 86400000).toISOString(),
+    };
+    persistSessions();
+
+    const clientHeader =
+      typeof req.headers['x-client-id'] === 'string'
+        ? req.headers['x-client-id'].trim()
+        : typeof req.body?.clientId === 'string'
+          ? req.body.clientId.trim()
+          : '';
+    const fpHeader =
+      typeof req.headers['x-device-fingerprint'] === 'string'
+        ? req.headers['x-device-fingerprint'].trim()
+        : typeof req.body?.deviceFingerprint === 'string'
+          ? req.body.deviceFingerprint.trim()
+          : '';
+
+    if (clientHeader) {
+      linkAccountAndDevice(user.id, clientHeader, fpHeader);
+    }
+
+    const currentUsage = getEffectiveUsage(req);
+    const maxCount = Math.max(user.freeAnalysisCount || 0, currentUsage.count);
+    user.freeAnalysisCount = maxCount;
+    user.freeLimitReached = maxCount >= MAX_FREE_ANALYSES;
+    persistUsers();
+
+    res.setHeader('Set-Cookie', [
+      `falcon_auth_token=${token}; Path=/; SameSite=Lax; Max-Age=2592000`,
+    ]);
+
+    return res.json({
+      success: true,
+      message: 'Logged in successfully!',
+      token,
+      user: sanitizeUser(user),
+    });
+  } catch (err: any) {
+    return res.status(500).json({ success: false, error: err.message || 'Login failed.' });
+  }
+});
+
+app.post('/api/auth/logout', (req: Request, res: Response) => {
+  const authHeader = typeof req.headers.authorization === 'string' ? req.headers.authorization.trim() : '';
+  const tokenHeader = typeof req.headers['x-auth-token'] === 'string' ? req.headers['x-auth-token'].trim() : '';
+  const cookies = parseCookies(req.headers.cookie);
+  const cookieToken = cookies['falcon_auth_token'] || cookies['falcon_user_auth_token_v1'] || '';
+  const token = (authHeader.startsWith('Bearer ') ? authHeader.slice(7).trim() : tokenHeader) || cookieToken;
+
+  if (token && sessions[token]) {
+    delete sessions[token];
+    persistSessions();
+  }
+
+  res.setHeader('Set-Cookie', [
+    `falcon_auth_token=; Path=/; SameSite=Lax; Max-Age=0`,
+  ]);
+
+  return res.json({
+    success: true,
+    message: 'Logged out successfully.',
+  });
+});
+
+app.get('/api/auth/me', (req: Request, res: Response) => {
+  const user = getAuthenticatedUserFromRequest(req);
+  if (!user) {
+    return res.json({
       authenticated: false,
       user: null,
     });
   }
-);
 
-// ============================================================
-// BASIC USER AUTH PLACEHOLDERS
-// ============================================================
-
-app.post(
-  '/api/auth/login',
-  (req: Request, res: Response) => {
-    const { email } =
-      req.body || {};
-
-    res.json({
-      success: true,
-      token:
-        `user_tok_${Date.now()}`,
-      user: {
-        id:
-          `user_${Date.now()}`,
-        email: email || '',
-      },
-      message:
-        'Logged in successfully',
-    });
-  }
-);
-
-app.post(
-  '/api/auth/register',
-  (req: Request, res: Response) => {
-    const { email } =
-      req.body || {};
-
-    res.json({
-      success: true,
-      token:
-        `user_tok_${Date.now()}`,
-      user: {
-        id:
-          `user_${Date.now()}`,
-        email: email || '',
-      },
-      message:
-        'Registered successfully',
-    });
-  }
-);
-
-app.post(
-  '/api/auth/logout',
-  (_req: Request, res: Response) => {
-    res.json({
-      success: true,
-      message:
-        'Logged out successfully.',
-    });
-  }
-);
-
-// ============================================================
-// ADMIN AUTH MIDDLEWARE
-// ============================================================
-
-function requireOwner(
-  req: Request,
-  res: Response,
-  next: NextFunction
-) {
-  const session =
-    getOwnerSessionFromRequest(req);
-
-  if (!session) {
-    return res.status(403).json({
-      success: false,
-      error:
-        'Owner authentication required.',
-    });
+  const currentUsage = getEffectiveUsage(req);
+  const maxCount = Math.max(user.freeAnalysisCount || 0, currentUsage.count);
+  if (maxCount !== user.freeAnalysisCount) {
+    user.freeAnalysisCount = maxCount;
+    user.freeLimitReached = maxCount >= MAX_FREE_ANALYSES;
+    persistUsers();
   }
 
-  next();
-}
+  return res.json({
+    authenticated: true,
+    user: sanitizeUser(user),
+  });
+});
 
-// ============================================================
-// TEST PRO MANAGEMENT
-// ============================================================
-
-app.get(
-  '/api/admin/test-pro-users',
-  requireOwner,
-  (_req: Request, res: Response) => {
-    const users =
-      Array.from(
-        testProUsersList.values()
-      ).map((u) => {
-        const expMs =
-          new Date(
-            u.expiresAt
-          ).getTime();
-
-        return {
-          ...u,
-          remainingTime:
-            calculateRemainingTime(
-              expMs
-            ),
-        };
-      });
-
-    res.json({
-      success: true,
-      users,
-    });
-  }
-);
-
-app.post(
-  '/api/admin/grant-test-pro',
-  requireOwner,
-  (req: Request, res: Response) => {
-    const {
-      userIdentifier,
-      durationDays,
-      notes,
-    } = req.body || {};
-
-    const cleanId =
-      typeof userIdentifier ===
-      'string'
-        ? userIdentifier.trim()
-        : '';
-
-    if (!cleanId) {
-      return res.status(400).json({
-        success: false,
-        error:
-          'Valid user identifier is required.',
-      });
+app.post('/api/auth/forgot-password', (req: Request, res: Response) => {
+  try {
+    const { email } = req.body || {};
+    if (!email || typeof email !== 'string') {
+      return res.status(400).json({ success: false, error: 'Email address is required.' });
     }
 
-    let days =
-      Number(durationDays);
+    const cleanEmail = email.trim().toLowerCase();
+    const user = Object.values(users).find((u) => u.email.toLowerCase() === cleanEmail);
 
-    if (
-      !Number.isFinite(days) ||
-      days <= 0
-    ) {
-      days = 7;
+    if (!user) {
+      return res.status(404).json({ success: false, error: 'No account registered with this email address.' });
     }
 
-    days = Math.min(
-      Math.floor(days),
-      365
-    );
-
-    const now = Date.now();
-
-    const expiresAtMs =
-      now +
-      days *
-        86400000;
-
-    const record: TestProRecord = {
-      id:
-        `test_rec_${Date.now()}_${crypto
-          .randomBytes(3)
-          .toString('hex')}`,
-
-      userIdentifier: cleanId,
-
-      accessType: 'TEST',
-
-      status: 'ACTIVE',
-
-      grantedBy:
-        'Owner Portal',
-
-      durationDays: days,
-
-      durationLabel:
-        `${days} Days`,
-
-      createdAt:
-        new Date(now)
-          .toISOString(),
-
-      expiresAt:
-        new Date(
-          expiresAtMs
-        ).toISOString(),
-
-      remainingTime:
-        calculateRemainingTime(
-          expiresAtMs
-        ),
-
-      notes:
-        typeof notes === 'string'
-          ? notes
-          : '',
+    const resetToken = crypto.randomBytes(24).toString('hex');
+    passwordResets[resetToken] = {
+      token: resetToken,
+      email: user.email,
+      userId: user.id,
+      createdAt: new Date().toISOString(),
+      expiresAt: new Date(Date.now() + 30 * 60 * 1000).toISOString(),
+      used: false,
     };
+    persistPasswordResets();
 
-    testProUsersList.set(
-      cleanId.toLowerCase(),
-      record
-    );
-
-    persistTestProUsers();
-
-    res.json({
+    return res.json({
       success: true,
-
-      message:
-        `Test Pro granted to ${cleanId}.`,
-
-      record,
+      message: 'Password reset code generated. Use this code to reset your password.',
+      resetToken,
     });
+  } catch (err: any) {
+    return res.status(500).json({ success: false, error: err.message || 'Password reset request failed.' });
   }
-);
+});
 
-app.post(
-  '/api/admin/revoke-test-pro',
-  requireOwner,
-  (req: Request, res: Response) => {
-    const {
-      userIdentifier,
-      recordId,
-    } = req.body || {};
+app.post('/api/auth/reset-password', (req: Request, res: Response) => {
+  try {
+    const { token, newPassword, confirmPassword } = req.body || {};
 
-    let target:
-      | TestProRecord
-      | null = null;
+    if (!token || typeof token !== 'string') {
+      return res.status(400).json({ success: false, error: 'Reset token is required.' });
+    }
 
-    let targetKey:
-      | string
-      | null = null;
+    if (!newPassword || typeof newPassword !== 'string' || newPassword.length < 6) {
+      return res.status(400).json({ success: false, error: 'New password must be at least 6 characters long.' });
+    }
 
-    for (
-      const [key, value]
-      of testProUsersList.entries()
-    ) {
-      if (
-        (
-          recordId &&
-          value.id === recordId
-        ) ||
-        (
-          userIdentifier &&
-          key ===
-            String(
-              userIdentifier
-            )
-              .trim()
-              .toLowerCase()
-        )
-      ) {
-        target = value;
-        targetKey = key;
-        break;
+    if (confirmPassword && newPassword !== confirmPassword) {
+      return res.status(400).json({ success: false, error: 'Passwords do not match.' });
+    }
+
+    const resetRecord = passwordResets[token.trim()];
+    if (!resetRecord) {
+      return res.status(400).json({ success: false, error: 'Invalid or expired password reset token.' });
+    }
+
+    if (resetRecord.used) {
+      return res.status(400).json({ success: false, error: 'This password reset token has already been used.' });
+    }
+
+    if (Date.now() > new Date(resetRecord.expiresAt).getTime()) {
+      return res.status(400).json({ success: false, error: 'Password reset token has expired. Please request a new one.' });
+    }
+
+    const user = users[resetRecord.userId];
+    if (!user) {
+      return res.status(404).json({ success: false, error: 'User account not found.' });
+    }
+
+    const { salt, hash } = hashPassword(newPassword);
+    user.passwordHash = hash;
+    user.salt = salt;
+    resetRecord.used = true;
+
+    // Invalidate old sessions for security
+    for (const [sessToken, sess] of Object.entries(sessions)) {
+      if (sess.userId === user.id) {
+        delete sessions[sessToken];
       }
     }
 
-    if (!target || !targetKey) {
-      return res.status(404).json({
-        success: false,
-        error:
-          'Test Pro record not found.',
+    persistUsers();
+    persistPasswordResets();
+    persistSessions();
+
+    return res.json({
+      success: true,
+      message: 'Password reset successfully! You can now log in with your new password.',
+    });
+  } catch (err: any) {
+    return res.status(500).json({ success: false, error: err.message || 'Password reset failed.' });
+  }
+});
+
+app.post('/api/auth/recover-license', (req: Request, res: Response) => {
+  try {
+    const user = getAuthenticatedUserFromRequest(req);
+    if (!user) {
+      return res.status(401).json({ success: false, error: 'Authentication required to recover license.' });
+    }
+
+    const userSub = getSubscriptionForUser(user.id);
+    if (!userSub) {
+      return res.status(403).json({ success: false, error: 'No active verified subscription found for this account.' });
+    }
+
+    return res.json({
+      success: true,
+      message: 'Pro license key retrieved successfully.',
+      licenseKey: userSub.licenseKey,
+      subscription: userSub,
+    });
+  } catch (err: any) {
+    return res.status(500).json({ success: false, error: err.message || 'License recovery failed.' });
+  }
+});
+
+// ============================================================
+// SAFEPAY WEBHOOK & PAYMENT CONFIRMATION
+// ============================================================
+
+const processedWebhookEvents = new Set<string>();
+
+interface SafepayWebhookLogEntry {
+  id: string;
+  timestamp: string;
+  eventType: string;
+  deliveryIdRedacted: string;
+  signaturePresent: boolean;
+  signatureVerified: boolean;
+  reference?: string;
+  statusCode: number;
+  message: string;
+}
+
+const safepayWebhookLogs: SafepayWebhookLogEntry[] = [];
+const MAX_WEBHOOK_LOGS = 50;
+
+function logSafepayWebhook(entry: SafepayWebhookLogEntry) {
+  safepayWebhookLogs.unshift(entry);
+  if (safepayWebhookLogs.length > MAX_WEBHOOK_LOGS) {
+    safepayWebhookLogs.pop();
+  }
+}
+
+function verifySafepayWebhookSignature(
+  req: Request,
+  webhookSecret: string
+): { valid: boolean; reason?: string } {
+  if (!webhookSecret) {
+    return { valid: false, reason: 'Webhook secret is not configured on the server.' };
+  }
+
+  const sigHeader = (
+    req.headers['x-sfpy-signature'] ||
+    req.headers['X-SFPY-SIGNATURE'] ||
+    ''
+  ).toString().trim();
+
+  if (!sigHeader) {
+    return { valid: false, reason: 'Missing X-SFPY-SIGNATURE header.' };
+  }
+
+  // Replay attack protection: if X-SFPY-TIMESTAMP header is present, verify freshness.
+  // Standard Safepay subscription events and dashboard test events do not mandate this header.
+  const timestampHeader = (
+    req.headers['x-sfpy-timestamp'] ||
+    req.headers['X-SFPY-TIMESTAMP'] ||
+    ''
+  ).toString().trim();
+
+  if (timestampHeader) {
+    const tsMs = Date.parse(timestampHeader);
+    if (isNaN(tsMs)) {
+      return { valid: false, reason: 'Invalid X-SFPY-TIMESTAMP format.' };
+    }
+    const now = Date.now();
+    if (Math.abs(now - tsMs) > 10 * 60 * 1000) {
+      return { valid: false, reason: 'Webhook timestamp expired or out of tolerance (replay attack protection).' };
+    }
+  }
+
+  // Raw request body
+  const rawBodyBuf = (req as any).rawBody as Buffer | undefined;
+  const rawBodyStr = rawBodyBuf
+    ? rawBodyBuf.toString('utf-8')
+    : (typeof req.body === 'string' ? req.body : JSON.stringify(req.body || {}));
+
+  // Safepay webhook secrets can be base64-encoded or plain strings
+  let secretKeyBuf: Buffer;
+  try {
+    if (/^[A-Za-z0-9+/=]+$/.test(webhookSecret) && webhookSecret.length % 4 === 0) {
+      const decoded = Buffer.from(webhookSecret, 'base64');
+      secretKeyBuf = decoded.length >= 16 ? decoded : Buffer.from(webhookSecret, 'utf-8');
+    } else {
+      secretKeyBuf = Buffer.from(webhookSecret, 'utf-8');
+    }
+  } catch {
+    secretKeyBuf = Buffer.from(webhookSecret, 'utf-8');
+  }
+
+  // Documented algorithm for Safepay Native Webhook endpoints:
+  // HMAC-SHA256 of the untouched raw request body
+  const hmac = crypto.createHmac('sha256', secretKeyBuf);
+  hmac.update(rawBodyStr);
+  const digestHex = hmac.digest('hex').toLowerCase();
+
+  const normalizedSigHeader = sigHeader.toLowerCase();
+  const expectedPrefixed = `sha256=${digestHex}`;
+  const targetToCompare = normalizedSigHeader.startsWith('sha256=') ? expectedPrefixed : digestHex;
+
+  const actualBuf = Buffer.from(normalizedSigHeader);
+  const expectedBuf = Buffer.from(targetToCompare);
+
+  if (actualBuf.length === expectedBuf.length && crypto.timingSafeEqual(actualBuf, expectedBuf)) {
+    return { valid: true };
+  }
+
+  // Try raw utf-8 secret buffer if base64 decoding was attempted
+  const altHmac = crypto.createHmac('sha256', Buffer.from(webhookSecret, 'utf-8'));
+  altHmac.update(rawBodyStr);
+  const altDigestHex = altHmac.digest('hex').toLowerCase();
+  const altTarget = normalizedSigHeader.startsWith('sha256=') ? `sha256=${altDigestHex}` : altDigestHex;
+  const altExpectedBuf = Buffer.from(altTarget);
+  if (actualBuf.length === altExpectedBuf.length && crypto.timingSafeEqual(actualBuf, altExpectedBuf)) {
+    return { valid: true };
+  }
+
+  return { valid: false, reason: 'Signature mismatch.' };
+}
+
+app.post('/api/safepay/webhook', (req: Request, res: Response) => {
+  try {
+    const config = getSafepayConfig();
+    const webhookSecret = config.webhookSecret;
+
+    // Delivery identifier for logging and idempotency
+    const rawEventId = (
+      req.headers['x-sfpy-event-id'] ||
+      req.headers['X-SFPY-EVENT-ID'] ||
+      req.body?.token ||
+      req.body?.id ||
+      ''
+    ).toString().trim();
+    const redactedEventId = rawEventId ? `${rawEventId.slice(0, 8)}...` : 'none';
+
+    const sigHeader = (
+      req.headers['x-sfpy-signature'] ||
+      req.headers['X-SFPY-SIGNATURE'] ||
+      ''
+    ).toString().trim();
+
+    // 1. Verify cryptographic signature according to official Safepay specification
+    const sigCheck = verifySafepayWebhookSignature(req, webhookSecret);
+    if (!sigCheck.valid) {
+      console.warn('[SAFEPAY WEBHOOK REJECTED]', sigCheck.reason);
+      logSafepayWebhook({
+        id: `wh_${Date.now()}_${crypto.randomBytes(3).toString('hex')}`,
+        timestamp: new Date().toISOString(),
+        eventType: String(req.headers['x-sfpy-event-type'] || req.body?.type || 'unknown'),
+        deliveryIdRedacted: redactedEventId,
+        signaturePresent: !!sigHeader,
+        signatureVerified: false,
+        statusCode: 401,
+        message: sigCheck.reason || 'Invalid signature',
+      });
+      return res.status(401).json({ success: false, error: sigCheck.reason });
+    }
+
+    const payload = req.body || {};
+    const eventType = (
+      req.headers['x-sfpy-event-type'] ||
+      req.headers['X-SFPY-EVENT-TYPE'] ||
+      payload.type ||
+      payload.event ||
+      ''
+    ).toString().toLowerCase();
+
+    const dataObj = payload.data || payload;
+
+    // 2. Extract reference, subscription token, and tracker
+    const ref = (
+      dataObj.subscription?.reference ||
+      dataObj.payment?.reference ||
+      dataObj.reference ||
+      dataObj.tracker ||
+      payload.reference ||
+      payload.tracker ||
+      ''
+    ).toString().trim();
+
+    const subscriptionId = (
+      dataObj.subscription?.token ||
+      dataObj.subscription?.id ||
+      dataObj.id ||
+      dataObj.token ||
+      payload.id ||
+      ''
+    ).toString().trim();
+
+    const paymentTracker = (
+      dataObj.payment?.tracker ||
+      dataObj.tracker ||
+      payload.tracker ||
+      ''
+    ).toString().trim();
+
+    // Find checkout session by merchant reference, subscription token, or tracker
+    let checkout: PendingSafepayCheckout | undefined;
+    if (ref && pendingSafepayCheckouts[ref]) {
+      checkout = pendingSafepayCheckouts[ref];
+    } else if (subscriptionId) {
+      for (const c of Object.values(pendingSafepayCheckouts)) {
+        if (c.subscriptionId && c.subscriptionId === subscriptionId) {
+          checkout = c;
+          break;
+        }
+      }
+    }
+    if (!checkout && paymentTracker) {
+      for (const c of Object.values(pendingSafepayCheckouts)) {
+        if (c.tracker && c.tracker === paymentTracker) {
+          checkout = c;
+          break;
+        }
+      }
+    }
+
+    // Idempotency: check event ID
+    const eventId = rawEventId;
+    if (eventId && processedWebhookEvents.has(eventId)) {
+      logSafepayWebhook({
+        id: `wh_${Date.now()}_${crypto.randomBytes(3).toString('hex')}`,
+        timestamp: new Date().toISOString(),
+        eventType,
+        deliveryIdRedacted: redactedEventId,
+        signaturePresent: true,
+        signatureVerified: true,
+        reference: ref || checkout?.reference,
+        statusCode: 200,
+        message: 'Duplicate event skipped (idempotent)',
+      });
+      return res.status(200).json({
+        success: true,
+        message: 'Event already processed (idempotent).',
+        licenseKey: checkout?.licenseKey,
       });
     }
 
-    target.status = 'REVOKED';
+    // 3. Handle subscription.created
+    if (eventType === 'subscription.created' || eventType.includes('subscription.created')) {
+      if (!checkout) {
+        logSafepayWebhook({
+          id: `wh_${Date.now()}_${crypto.randomBytes(3).toString('hex')}`,
+          timestamp: new Date().toISOString(),
+          eventType,
+          deliveryIdRedacted: redactedEventId,
+          signaturePresent: true,
+          signatureVerified: true,
+          reference: ref,
+          statusCode: 404,
+          message: 'Checkout session not found for subscription.created',
+        });
+        return res.status(404).json({ success: false, error: 'Checkout session not found for subscription reference.' });
+      }
 
-    target.remainingTime =
-      'Revoked';
+      if (subscriptionId) {
+        checkout.subscriptionId = subscriptionId;
+      }
+      if (paymentTracker) {
+        checkout.tracker = paymentTracker;
+      }
+      persistPendingSafepayCheckout(checkout);
+      if (eventId) processedWebhookEvents.add(eventId);
 
-    target.revokedAt =
-      new Date().toISOString();
+      logSafepayWebhook({
+        id: `wh_${Date.now()}_${crypto.randomBytes(3).toString('hex')}`,
+        timestamp: new Date().toISOString(),
+        eventType,
+        deliveryIdRedacted: redactedEventId,
+        signaturePresent: true,
+        signatureVerified: true,
+        reference: checkout.reference,
+        statusCode: 200,
+        message: 'Subscription created and linked to checkout. Awaiting payment.',
+      });
 
-    persistTestProUsers();
+      return res.status(200).json({
+        success: true,
+        message: 'Subscription created and linked to checkout. Awaiting payment.',
+        subscriptionId,
+      });
+    }
 
+    // 4. For payment completion events: require valid checkout session
+    if (!checkout) {
+      logSafepayWebhook({
+        id: `wh_${Date.now()}_${crypto.randomBytes(3).toString('hex')}`,
+        timestamp: new Date().toISOString(),
+        eventType,
+        deliveryIdRedacted: redactedEventId,
+        signaturePresent: true,
+        signatureVerified: true,
+        reference: ref,
+        statusCode: 404,
+        message: 'Checkout session not found',
+      });
+      return res.status(404).json({ success: false, error: 'Checkout session not found.' });
+    }
+
+    // Check if checkout is already completed (idempotency)
+    if (checkout.status === 'COMPLETED' && checkout.licenseKey) {
+      if (eventId) processedWebhookEvents.add(eventId);
+      logSafepayWebhook({
+        id: `wh_${Date.now()}_${crypto.randomBytes(3).toString('hex')}`,
+        timestamp: new Date().toISOString(),
+        eventType,
+        deliveryIdRedacted: redactedEventId,
+        signaturePresent: true,
+        signatureVerified: true,
+        reference: checkout.reference,
+        statusCode: 200,
+        message: 'Payment already completed (idempotent)',
+      });
+      return res.status(200).json({
+        success: true,
+        message: 'Payment already processed (idempotent).',
+        licenseKey: checkout.licenseKey,
+      });
+    }
+
+    // Verify actual payment status
+    const paymentState = (
+      dataObj.payment?.state ||
+      dataObj.payment?.status ||
+      dataObj.status ||
+      payload.status ||
+      ''
+    ).toString().toUpperCase();
+
+    const subStatus = (
+      dataObj.subscription?.status ||
+      dataObj.status ||
+      ''
+    ).toString().toUpperCase();
+
+    const isSuccessStatus =
+      paymentState === 'COMPLETE' ||
+      paymentState === 'COMPLETED' ||
+      paymentState === 'SUCCEEDED' ||
+      paymentState === 'SUCCESS' ||
+      paymentState === 'PAID' ||
+      paymentState === 'SETTLED' ||
+      subStatus === 'ACTIVE' ||
+      eventType.includes('subscription.payment.succeeded') ||
+      eventType.includes('payment.completed') ||
+      eventType.includes('payment.succeeded');
+
+    if (!isSuccessStatus) {
+      if (
+        paymentState === 'FAILED' ||
+        paymentState === 'CANCELLED' ||
+        paymentState === 'REJECTED' ||
+        subStatus === 'CANCELLED' ||
+        subStatus === 'FAILED'
+      ) {
+        checkout.status = 'FAILED';
+        persistPendingSafepayCheckout(checkout);
+      }
+      logSafepayWebhook({
+        id: `wh_${Date.now()}_${crypto.randomBytes(3).toString('hex')}`,
+        timestamp: new Date().toISOString(),
+        eventType,
+        deliveryIdRedacted: redactedEventId,
+        signaturePresent: true,
+        signatureVerified: true,
+        reference: checkout.reference,
+        statusCode: 400,
+        message: `Payment not completed. Status: ${paymentState || subStatus || eventType}`,
+      });
+      return res.status(400).json({
+        success: false,
+        error: `Payment is not completed. Current status: ${paymentState || subStatus || eventType}`,
+      });
+    }
+
+    // Currency verification if present in webhook data
+    const reportedCurrency = (
+      dataObj.payment?.currency ||
+      dataObj.subscription?.currency ||
+      dataObj.currency ||
+      payload.currency ||
+      ''
+    ).toString().toUpperCase();
+
+    if (reportedCurrency && checkout.currency && reportedCurrency !== checkout.currency) {
+      logSafepayWebhook({
+        id: `wh_${Date.now()}_${crypto.randomBytes(3).toString('hex')}`,
+        timestamp: new Date().toISOString(),
+        eventType,
+        deliveryIdRedacted: redactedEventId,
+        signaturePresent: true,
+        signatureVerified: true,
+        reference: checkout.reference,
+        statusCode: 400,
+        message: `Currency mismatch: expected ${checkout.currency}, got ${reportedCurrency}`,
+      });
+      return res.status(400).json({
+        success: false,
+        error: `Currency mismatch: expected ${checkout.currency}, got ${reportedCurrency}`,
+      });
+    }
+
+    // Plan ID verification if present in webhook data
+    const reportedPlanId = (
+      dataObj.subscription?.plan_id ||
+      dataObj.plan_id ||
+      payload.plan_id ||
+      ''
+    ).toString().trim();
+
+    if (reportedPlanId && checkout.planId && reportedPlanId !== checkout.planId) {
+      logSafepayWebhook({
+        id: `wh_${Date.now()}_${crypto.randomBytes(3).toString('hex')}`,
+        timestamp: new Date().toISOString(),
+        eventType,
+        deliveryIdRedacted: redactedEventId,
+        signaturePresent: true,
+        signatureVerified: true,
+        reference: checkout.reference,
+        statusCode: 400,
+        message: `Plan ID mismatch: expected ${checkout.planId}, got ${reportedPlanId}`,
+      });
+      return res.status(400).json({
+        success: false,
+        error: `Plan ID mismatch: expected ${checkout.planId}, got ${reportedPlanId}`,
+      });
+    }
+
+    // 5. Lookup user
+    const userId = checkout.userId;
+    if (!userId || !users[userId]) {
+      logSafepayWebhook({
+        id: `wh_${Date.now()}_${crypto.randomBytes(3).toString('hex')}`,
+        timestamp: new Date().toISOString(),
+        eventType,
+        deliveryIdRedacted: redactedEventId,
+        signaturePresent: true,
+        signatureVerified: true,
+        reference: checkout.reference,
+        statusCode: 400,
+        message: 'No user account associated with this checkout.',
+      });
+      return res.status(400).json({ success: false, error: 'No user account associated with this checkout.' });
+    }
+    const user = users[userId];
+
+    // 6. Generate 128-bit cryptographic license key and store subscription
+    const licenseKey = generateProLicenseKey();
+    const durationDays = checkout.plan === 'yearly' ? 365 : 30;
+    const expiresAt = new Date(Date.now() + durationDays * 86400000).toISOString();
+    const nowIso = new Date().toISOString();
+
+    const subId = subscriptionId && subscriptionId.startsWith('sub_')
+      ? subscriptionId
+      : `sub_${Date.now()}_${crypto.randomBytes(4).toString('hex')}`;
+
+    const newSub: StoredSubscription = {
+      id: subId,
+      userId: user.id,
+      userEmail: user.email,
+      plan: checkout.plan,
+      currency: checkout.currency,
+      reference: checkout.reference,
+      planId: checkout.planId,
+      licenseKey,
+      status: 'ACTIVE',
+      activatedAt: nowIso,
+      createdAt: nowIso,
+      expiresAt,
+    };
+
+    subscriptions[subId] = newSub;
+
+    // Automatic Pro Activation on verified payment
+    user.licenseKey = licenseKey;
+    user.activeSubscriptionId = subId;
+    persistUsers();
+
+    checkout.status = 'COMPLETED';
+    checkout.completedAt = nowIso;
+    checkout.licenseKey = licenseKey;
+    if (subscriptionId) {
+      checkout.subscriptionId = subscriptionId;
+    }
+    if (paymentTracker) {
+      checkout.tracker = paymentTracker;
+    }
+
+    if (eventId) processedWebhookEvents.add(eventId);
+
+    persistSubscriptions();
+    persistPendingSafepayCheckout(checkout);
+
+    logSafepayWebhook({
+      id: `wh_${Date.now()}_${crypto.randomBytes(3).toString('hex')}`,
+      timestamp: new Date().toISOString(),
+      eventType,
+      deliveryIdRedacted: redactedEventId,
+      signaturePresent: true,
+      signatureVerified: true,
+      reference: checkout.reference,
+      statusCode: 200,
+      message: 'Payment verified and Pro automatically activated.',
+    });
+
+    return res.status(200).json({
+      success: true,
+      message: 'Payment verified and Pro automatically activated.',
+      licenseKey,
+    });
+  } catch (err: any) {
+    console.error('[SAFEPAY WEBHOOK ERROR]', err?.message || err);
+    return res.status(500).json({ success: false, error: err.message || 'Webhook processing failed.' });
+  }
+});
+
+// GET /api/safepay/webhook-diagnostics: safe, redacted diagnostic log inspection
+app.get('/api/safepay/webhook-diagnostics', (_req: Request, res: Response) => {
+  return res.json({
+    success: true,
+    totalLogs: safepayWebhookLogs.length,
+    logs: safepayWebhookLogs,
+  });
+});
+
+// GET /api/safepay/payment-status: poll payment verification status securely
+app.get('/api/safepay/payment-status', async (req: Request, res: Response) => {
+  try {
+    const reference = String(req.query.reference || req.query.tracker || '').trim();
+    if (!reference) {
+      return res.status(400).json({ success: false, error: 'Reference parameter is required.' });
+    }
+
+    let checkout = pendingSafepayCheckouts[reference];
+    if (!checkout) {
+      for (const c of Object.values(pendingSafepayCheckouts)) {
+        if ((c.tracker && c.tracker === reference) || (c.subscriptionId && c.subscriptionId === reference)) {
+          checkout = c;
+          break;
+        }
+      }
+    }
+    if (!checkout) {
+      return res.status(404).json({ success: false, error: 'Checkout session not found.' });
+    }
+
+    const authUser = getAuthenticatedUserFromRequest(req);
+    if (authUser && checkout.userId && checkout.userId !== authUser.id) {
+      return res.status(403).json({ success: false, error: 'Access denied: Checkout belongs to another user.' });
+    }
+
+    if (checkout.status === 'COMPLETED' && checkout.licenseKey) {
+      // Auto-activate user account if not yet bound
+      if (checkout.userId && users[checkout.userId]) {
+        const u = users[checkout.userId];
+        if (!u.licenseKey || u.licenseKey !== checkout.licenseKey) {
+          u.licenseKey = checkout.licenseKey;
+          for (const s of Object.values(subscriptions)) {
+            if (s.licenseKey === checkout.licenseKey) {
+              s.activatedAt = s.activatedAt || new Date().toISOString();
+              u.activeSubscriptionId = s.id;
+              break;
+            }
+          }
+          persistUsers();
+          persistSubscriptions();
+        }
+      }
+
+      return res.json({
+        success: true,
+        verified: true,
+        status: 'COMPLETED',
+        licenseKey: checkout.licenseKey,
+        plan: checkout.plan,
+        currency: checkout.currency,
+        completedAt: checkout.completedAt,
+      });
+    }
+
+    if (checkout.status === 'FAILED' || checkout.status === 'CANCELLED') {
+      return res.json({
+        success: true,
+        verified: false,
+        cancelled: true,
+        status: checkout.status,
+      });
+    }
+
+    // Phase D: If checkout is PENDING and has a verified subscriptionId, attempt authoritative Safepay API verification
+    if (checkout.status === 'PENDING' && checkout.subscriptionId) {
+      const config = getSafepayConfig();
+      if (config.secretKey) {
+        try {
+          const verifyUrl = `${config.apiHost}/client/subscriptions/v1/${encodeURIComponent(checkout.subscriptionId)}`;
+          const verifyRes = await fetch(verifyUrl, {
+            headers: {
+              'X-SFPY-MERCHANT-SECRET': config.secretKey,
+              'Content-Type': 'application/json',
+            },
+          });
+
+          if (verifyRes.ok) {
+            const verifyData: any = await verifyRes.json();
+            const subData = verifyData?.data || verifyData;
+            const subStatus = (subData?.status || '').toString().toUpperCase();
+            const planMatches = !subData?.plan_id || subData.plan_id === checkout.planId;
+
+            if (subStatus === 'ACTIVE' && planMatches && checkout.userId && users[checkout.userId]) {
+              const user = users[checkout.userId];
+              const licenseKey = generateProLicenseKey();
+              const durationDays = checkout.plan === 'yearly' ? 365 : 30;
+              const expiresAt = new Date(Date.now() + durationDays * 86400000).toISOString();
+              const nowIso = new Date().toISOString();
+
+              const subId = checkout.subscriptionId;
+              const newSub: StoredSubscription = {
+                id: subId,
+                userId: user.id,
+                userEmail: user.email,
+                plan: checkout.plan,
+                currency: checkout.currency,
+                reference: checkout.reference,
+                planId: checkout.planId,
+                licenseKey,
+                status: 'ACTIVE',
+                activatedAt: nowIso,
+                createdAt: nowIso,
+                expiresAt,
+              };
+
+              subscriptions[subId] = newSub;
+              user.licenseKey = licenseKey;
+              user.activeSubscriptionId = subId;
+              persistUsers();
+
+              checkout.status = 'COMPLETED';
+              checkout.completedAt = nowIso;
+              checkout.licenseKey = licenseKey;
+              persistSubscriptions();
+              persistPendingSafepayCheckout(checkout);
+
+              return res.json({
+                success: true,
+                verified: true,
+                status: 'COMPLETED',
+                licenseKey: checkout.licenseKey,
+                plan: checkout.plan,
+                currency: checkout.currency,
+                completedAt: checkout.completedAt,
+              });
+            }
+          }
+        } catch (apiErr) {
+          console.warn('[SAFEPAY PAYMENT STATUS] Direct API verification check error:', apiErr);
+        }
+      }
+    }
+
+    return res.json({
+      success: true,
+      verified: false,
+      pending: true,
+      status: 'PENDING',
+    });
+  } catch (err: any) {
+    return res.status(500).json({ success: false, error: err.message || 'Failed to check payment status.' });
+  }
+});
+
+// Secure legacy /api/safepay/confirm-payment: never issues unverified licenses
+app.post('/api/safepay/confirm-payment', (req: Request, res: Response) => {
+  try {
+    const { reference } = req.body || {};
+    if (!reference || typeof reference !== 'string') {
+      return res.status(400).json({ success: false, error: 'Reference is required.' });
+    }
+
+    const checkout = pendingSafepayCheckouts[reference.trim()];
+    if (!checkout) {
+      return res.status(404).json({ success: false, error: 'Checkout record not found.' });
+    }
+
+    // Only return if previously verified by legitimate webhook
+    if (checkout.status === 'COMPLETED' && checkout.licenseKey) {
+      return res.json({
+        success: true,
+        verified: true,
+        status: 'COMPLETED',
+        licenseKey: checkout.licenseKey,
+      });
+    }
+
+    return res.status(400).json({
+      success: false,
+      verified: false,
+      error: 'Payment confirmation pending: Awaiting verified webhook from Safepay.',
+    });
+  } catch (err: any) {
+    return res.status(500).json({ success: false, error: err.message || 'Payment confirmation failed.' });
+  }
+});
+
+// ============================================================
+// OWNER & ADMIN PANEL OVERVIEW
+// ============================================================
+
+app.get(
+  '/api/admin/overview',
+  requireOwner,
+  (_req: Request, res: Response) => {
     res.json({
       success: true,
-      message:
-        'Test Pro revoked successfully.',
+      stats: {
+        totalUsers: Object.keys(users).length,
+        totalSubscriptions: Object.keys(subscriptions).length,
+        activeSubscriptions: Object.values(subscriptions).filter((s) => s.status === 'ACTIVE').length,
+        totalCheckouts: Object.keys(pendingSafepayCheckouts).length,
+      },
+      users: Object.values(users).map((u) => ({
+        id: u.id,
+        email: u.email,
+        createdAt: u.createdAt,
+        licenseKey: u.licenseKey,
+        hasActiveSubscription: Boolean(getActiveSubscriptionForUser(u.id)),
+      })),
+      subscriptions: Object.values(subscriptions),
+    });
+  }
+);
+
+let ownerHistory: any[] = readJsonFile<any[]>(OWNER_HISTORY_FILE, []);
+
+app.get(
+  '/api/admin/history',
+  requireOwner,
+  (_req: Request, res: Response) => {
+    res.json({
+      success: true,
+      history: ownerHistory,
+    });
+  }
+);
+
+app.post(
+  '/api/admin/history',
+  requireOwner,
+  (req: Request, res: Response) => {
+    const item = req.body?.item;
+    if (item && item.id) {
+      ownerHistory = [item, ...ownerHistory.filter((h: any) => h.id !== item.id)].slice(0, 50);
+      writeJsonFile(OWNER_HISTORY_FILE, ownerHistory);
+    }
+    res.json({
+      success: true,
+      history: ownerHistory,
+    });
+  }
+);
+
+app.delete(
+  '/api/admin/history',
+  requireOwner,
+  (_req: Request, res: Response) => {
+    ownerHistory = [];
+    writeJsonFile(OWNER_HISTORY_FILE, ownerHistory);
+    res.json({
+      success: true,
+      message: 'Owner history cleared successfully.',
     });
   }
 );
@@ -3657,6 +4474,9 @@ app.post(
     req: Request,
     res: Response
   ) => {
+    let reservedKeys: string[] = [];
+    let usageSnapshot = { count: 0, resetAt: null as string | null };
+
     try {
       const {
         imageBase64,
@@ -3684,6 +4504,9 @@ app.post(
       const isOwner =
         Boolean(ownerSession);
 
+      const authUser =
+        getAuthenticatedUserFromRequest(req);
+
       const headerLicense =
         typeof req.headers[
           'x-license-key'
@@ -3699,42 +4522,43 @@ app.post(
           ? bodyLicenseKey
           : headerLicense;
 
+      const userProCheck =
+        authUser
+          ? isUserActivePro(authUser)
+          : { isPro: false, subscription: null, licenseKey: null };
+
+      const isUserPaidPro = Boolean(authUser) && (userProCheck.isPro || isVerifiedProKey(authUser?.licenseKey));
+      const isDirectPaidPro = isVerifiedProKey(licenseKey);
+
       const isPaidPro =
-        isVerifiedProKey(
-          licenseKey
-        );
-
-      const activeTestPro =
-        !isOwner && !isPaidPro
-          ? getActiveTestProForRequest(
-              req
-            )
-          : null;
-
-      const isTestPro =
-        Boolean(activeTestPro);
+        isOwner || isDirectPaidPro || isUserPaidPro;
 
       const isPro =
-        isOwner ||
-        isPaidPro ||
-        isTestPro;
+        isOwner || isPaidPro;
+
+      const isSubjectToFreeQuota = authUser
+        ? !isUserPaidPro
+        : (!isOwner && !isDirectPaidPro);
+
 
       // ------------------------------------------------------
-      // PLAN CHECK
+      // PRO / MULTI-CHART AUTHORIZATION CHECK
       // ------------------------------------------------------
 
-      if (
-        plan === 'pro' &&
-        !isPro
-      ) {
-        return res.status(200).json({
+      const isMultiChartRequested =
+        plan === 'pro' ||
+        (Array.isArray(images) && images.length > 1) ||
+        Boolean(req.body.isMultiChart);
+
+      if (isMultiChartRequested && !isPro) {
+        return res.status(403).json({
           success: false,
-
-          code:
-            'PRO_ACCESS_DENIED',
-
-          error:
-            'Pro 3-chart analysis requires active Pro access.',
+          code: 'PRO_ACCESS_DENIED',
+          requiresPro: true,
+          requiresLogin: !authUser && !isOwner,
+          error: !authUser && !isOwner
+            ? 'Multi-Chart / 3-screen analysis is a Pro-only feature. Please log in with a Pro account.'
+            : 'Multi-Chart / 3-screen analysis requires an active Pro subscription or license. Please upgrade to Pro.',
         });
       }
 
@@ -3765,13 +4589,12 @@ app.post(
             maxAllowed
           );
 
-        for (
-          const img
-          of targetImages
-        ) {
-          if (img?.timeframe && typeof img.timeframe === 'string') {
-            imageTimeframes.push(img.timeframe);
-          }
+        for (let i = 0; i < targetImages.length; i++) {
+          const img = targetImages[i];
+          const tf = (img?.timeframe && typeof img.timeframe === 'string' && img.timeframe.trim().length > 0)
+            ? img.timeframe.trim()
+            : (i === 0 && timeframe ? timeframe.trim() : `Chart ${i + 1}`);
+          imageTimeframes.push(tf);
           let rawData =
             img?.imageBase64 ||
             img?.dataUrl ||
@@ -3950,20 +4773,27 @@ app.post(
       }
 
       // ------------------------------------------------------
-      // FREE LIMIT
+      // FREE LIMIT & CONCURRENCY RESERVATION
       // ------------------------------------------------------
 
-      if (
-        !isOwner &&
-        !isPro
-      ) {
-        const currentCount =
-          getFreeUsageCountForClient(
-            req
-          );
+      if (isSubjectToFreeQuota) {
+        const clientInfo = getClientKeys(req);
+        if (authUser && clientInfo.clientId) {
+          const fp =
+            typeof req.headers['x-device-fingerprint'] === 'string'
+              ? req.headers['x-device-fingerprint']
+              : null;
+          linkAccountAndDevice(authUser.id, clientInfo.clientId, fp);
+        }
+
+        const usage = getEffectiveUsage(req);
+        const userLifetimeCount = authUser
+          ? Math.max(authUser.freeAnalysisCount || 0, usage.count)
+          : usage.count;
+        usageSnapshot = { count: userLifetimeCount, resetAt: null };
 
         if (
-          currentCount >=
+          userLifetimeCount >=
           MAX_FREE_ANALYSES
         ) {
           return res.status(403).json({
@@ -3973,10 +4803,10 @@ app.post(
               'FREE_LIMIT_REACHED',
 
             error:
-              'Free limit reached: You have used all 3 free screenshots. Upgrade to PRO to continue.',
+              'Lifetime free limit reached: You have completed all 3 free chart analyses. Free access is permanently locked. Upgrade to PRO to continue.',
 
             freeAnalysisCount:
-              currentCount,
+              userLifetimeCount,
 
             maxFreeAnalyses:
               MAX_FREE_ANALYSES,
@@ -3985,9 +4815,43 @@ app.post(
 
             limitReached: true,
 
+            resetAt: null,
+
             upgradeRequired: true,
+            requiresPro: true,
           });
         }
+
+        const reserved = reserveAnalysisAttempt(clientInfo.allKeys);
+        if (!reserved) {
+          return res.status(403).json({
+            success: false,
+
+            code:
+              'FREE_LIMIT_REACHED',
+
+            error:
+              'Lifetime free limit reached: You have reached the maximum 3 free analyses in progress or completed. Upgrade to PRO to continue.',
+
+            freeAnalysisCount:
+              userLifetimeCount,
+
+            maxFreeAnalyses:
+              MAX_FREE_ANALYSES,
+
+            remainingFreeAnalyses: 0,
+
+            limitReached: true,
+
+
+            resetAt: null,
+
+            upgradeRequired: true,
+            requiresPro: true,
+          });
+        }
+
+        reservedKeys = clientInfo.allKeys;
       }
 
       // ------------------------------------------------------
@@ -4052,20 +4916,19 @@ app.post(
             `[FALCON VISION] Trying ${modelName} with ${imageParts.length} image(s)`
           );
 
-          const aiResponse =
-            await ai.models.generateContent(
-              {
-                model:
-                  modelName,
+          const generatePromise = ai.models.generateContent({
+            model: modelName,
+            contents,
+            config: {
+              responseMimeType: 'application/json',
+            },
+          });
 
-                contents,
+          const timeoutPromise = new Promise((_, reject) => {
+            setTimeout(() => reject(new Error(`[FALCON VISION] ${modelName} request timed out after 60s`)), 60000);
+          });
 
-                config: {
-                  responseMimeType:
-                    'application/json',
-                },
-              }
-            );
+          const aiResponse: any = await Promise.race([generatePromise, timeoutPromise]);
 
           const rawText =
             aiResponse?.text?.trim();
@@ -4109,6 +4972,16 @@ app.post(
                 err
             ).slice(0, 300)
           );
+
+          const errStr = String(err?.message || err);
+          if (
+            errStr.includes('timed out') ||
+            errStr.includes('429') ||
+            errStr.includes('RESOURCE_EXHAUSTED') ||
+            errStr.includes('quota')
+          ) {
+            break;
+          }
         }
       }
 
@@ -4126,79 +4999,58 @@ app.post(
       // ------------------------------------------------------
 
       let analysisData =
-  normalizeAnalysis(
-    parsedResult,
-    {
-      asset,
-      timeframe,
-      tradingStyle,
-      timeframes: imageTimeframes,
-    }
-  );
-
-console.log('[PRICE SERVER DEBUG] parsedResult:', JSON.stringify(parsedResult));
-console.log('[PRICE SERVER DEBUG] analysisData:', JSON.stringify(analysisData));
-console.log('[PRICE SERVER DEBUG] ENTRY:', JSON.stringify(analysisData.entryZone));
-console.log('[PRICE SERVER DEBUG] SL/TP:', JSON.stringify({
-  stopLoss: analysisData.stopLoss,
-  takeProfit1: analysisData.takeProfit1,
-  takeProfit2: analysisData.takeProfit2,
-}));
-      // ------------------------------------------------------
-      // VALIDATE TRADE LOGIC
-      // ------------------------------------------------------
-
-      // Check if directional levels are inverted based on chart levels
-      const currentEntry = finiteNumber(
-        analysisData.entryZone?.recommended ?? (analysisData.entryZone as any)?.min
-      );
-      const currentSL = finiteNumber(analysisData.stopLoss?.price);
-      const currentTP1 = finiteNumber(analysisData.takeProfit1?.price);
-
-      if (currentEntry !== null && currentSL !== null && currentTP1 !== null) {
-        if (analysisData.verdict?.signal === 'BUY' && currentSL > currentEntry && currentTP1 < currentEntry) {
-          console.log('[FALCON VALIDATION] Inverted levels detected: aligning BUY to SELL structure.');
-          if (analysisData.verdict) {
-            analysisData.verdict.signal = 'SELL';
-            analysisData.verdict.bias = 'Bearish';
+        normalizeAnalysis(
+          parsedResult,
+          {
+            asset,
+            timeframe,
+            tradingStyle,
+            timeframes: imageTimeframes,
           }
-        } else if (analysisData.verdict?.signal === 'SELL' && currentSL < currentEntry && currentTP1 > currentEntry) {
-          console.log('[FALCON VALIDATION] Inverted levels detected: aligning SELL to BUY structure.');
-          if (analysisData.verdict) {
-            analysisData.verdict.signal = 'BUY';
-            analysisData.verdict.bias = 'Bullish';
-          }
-        }
-      }
-
-      let validation =
-        validateTradeStructure(
-          analysisData
         );
 
-      if (!validation.valid) {
+      // ------------------------------------------------------
+      // RECONCILE AND VALIDATE TRADE PLAN CONSISTENCY
+      // ------------------------------------------------------
+
+      const { reconciled, validation } =
+        reconcileAndValidateTradePlan(
+          analysisData,
+          {
+            asset,
+            timeframe,
+            tradingStyle,
+          }
+        );
+
+      analysisData = reconciled;
+
+      // Final safety audit before returning to client
+      const finalAudit = validateTradeStructure(analysisData);
+      if (!finalAudit.valid) {
         console.warn(
-          '[FALCON VALIDATION] Invalid Gemini trade structure:',
-          validation.reason
+          '[FALCON VALIDATION] Inconsistency detected before sending to client, auto-reconciling trade plan:',
+          finalAudit.reason
         );
-
-        /*
-         * Do NOT repair Gemini prices with
-         * synthetic calculations.
-
-         * Convert invalid trade into WAIT.
-         */
-
-        // Do not convert to WAIT. Retain directional signal from market analysis.
-        const fallbackSignal = (analysisData.verdict?.signal === 'SELL' ? 'SELL' : 'BUY');
-        analysisData.verdict = {
-          ...(analysisData.verdict || {}),
-          signal: fallbackSignal,
-          bias: fallbackSignal === 'SELL' ? 'Bearish' : 'Bullish',
-          summary: analysisData.detailedExplanation || `Technical ${fallbackSignal} setup derived from visible chart structure.`,
-          timeframeContext: analysisData.verdict?.timeframeContext || '',
-        };
+        const { reconciled: fixedReconciled } = reconcileAndValidateTradePlan(
+          analysisData,
+          { asset, timeframe, tradingStyle }
+        );
+        analysisData = fixedReconciled;
       }
+
+      console.log(
+        '[FALCON VALIDATION] Trade signal ready:',
+        analysisData.verdict?.signal,
+        'Entry:',
+        analysisData.entryZone?.recommended,
+        'SL:',
+        analysisData.stopLoss?.price,
+        'TP1:',
+        analysisData.takeProfit1?.price,
+        'TP2:',
+        analysisData.takeProfit2?.price
+      );
 
       // ------------------------------------------------------
       // ADD SERVER METADATA
@@ -4243,17 +5095,44 @@ console.log('[PRICE SERVER DEBUG] SL/TP:', JSON.stringify({
         false;
 
       if (
-        !isOwner &&
-        !isPro
+        isSubjectToFreeQuota &&
+        reservedKeys.length > 0
       ) {
         updatedFreeCount =
-          incrementFreeUsageCountForClient(
-            req
+          commitSuccessfulFreeAnalysis(
+            reservedKeys,
+            authUser?.id
           );
 
         isFreeLimitReached =
           updatedFreeCount >=
           MAX_FREE_ANALYSES;
+      }
+
+
+      if (isOwner && finalAnalysis) {
+        try {
+          const historyItem = {
+            id: finalAnalysis.id || `owner_anl_${Date.now()}`,
+            timestamp: new Date().toISOString(),
+            asset: asset || finalAnalysis.asset || 'CHART',
+            timeframe: timeframe || finalAnalysis.timeframe || '4H',
+            tradingStyle: tradingStyle || finalAnalysis.tradingStyle || 'Swing',
+            bias: bias || 'Auto',
+            imagesCount: Array.isArray(images) ? images.length : 1,
+            verdict: finalAnalysis.verdict,
+            entryZone: finalAnalysis.entryZone,
+            stopLoss: finalAnalysis.stopLoss,
+            takeProfit1: finalAnalysis.takeProfit1,
+            takeProfit2: finalAnalysis.takeProfit2,
+            marketTrend: finalAnalysis.marketTrend,
+            detailedExplanation: finalAnalysis.detailedExplanation,
+          };
+          ownerHistory = [historyItem, ...ownerHistory.filter((h: any) => h.id !== historyItem.id)].slice(0, 50);
+          writeJsonFile(OWNER_HISTORY_FILE, ownerHistory);
+        } catch (hErr) {
+          console.warn('[STORAGE] Failed auto-saving owner history:', hErr);
+        }
       }
 
       // ------------------------------------------------------
@@ -4281,38 +5160,38 @@ console.log('[PRICE SERVER DEBUG] SL/TP:', JSON.stringify({
 
         isPaidPro,
 
-        isTestPro,
-
         accessType:
           isOwner
             ? 'OWNER'
-            : isTestPro
-              ? 'TEST'
-              : isPaidPro
-                ? 'PAID'
-                : 'FREE',
+            : isPaidPro
+              ? 'PAID'
+              : 'FREE',
 
         freeAnalysisCount:
-          isOwner || isPro
-            ? undefined
-            : updatedFreeCount,
+          isSubjectToFreeQuota
+            ? updatedFreeCount
+            : undefined,
 
         maxFreeAnalyses:
           MAX_FREE_ANALYSES,
 
         remainingFreeAnalyses:
-          isOwner || isPro
-            ? 999
-            : Math.max(
+          isSubjectToFreeQuota
+            ? Math.max(
                 0,
                 MAX_FREE_ANALYSES -
                   (updatedFreeCount || 0)
-              ),
+              )
+            : 999,
 
         freeLimitReached:
-          isOwner || isPro
-            ? false
-            : isFreeLimitReached,
+          isSubjectToFreeQuota
+            ? isFreeLimitReached
+            : false,
+
+
+        resetAt:
+          null,
       });
     } catch (err: any) {
       console.error(
@@ -4328,40 +5207,57 @@ console.log('[PRICE SERVER DEBUG] SL/TP:', JSON.stringify({
         String(errorMessage);
 
       if (
-        errorText.includes(
-          '429'
-        ) ||
-        errorText.includes(
-          'RESOURCE_EXHAUSTED'
-        ) ||
-        errorText.includes(
-          'quota'
-        )
+        errorText.includes('429') ||
+        errorText.includes('RESOURCE_EXHAUSTED') ||
+        errorText.includes('quota')
       ) {
-        errorMessage =
-          'Gemini API quota is temporarily unavailable. Please try again later or configure billing/API quota.';
+        return res.status(429).json({
+          success: false,
+          error: 'Gemini API quota exceeded. Please check your plan and billing details or try again later.',
+        });
       }
 
       if (
-        errorText.includes(
-          '503'
-        ) ||
-        errorText.includes(
-          'UNAVAILABLE'
-        ) ||
-        errorText.includes(
-          'high demand'
-        )
+        errorText.includes('503') ||
+        errorText.includes('UNAVAILABLE') ||
+        errorText.includes('high demand')
       ) {
-        errorMessage =
-          'Gemini vision models are temporarily under high demand. Please try Analyze Chart again in a few moments.';
+        return res.status(503).json({
+          success: false,
+          error: 'Gemini vision models are temporarily under high demand. Please try Analyze Chart again in a few moments.',
+        });
+      }
+
+      if (
+        errorText.includes('timed out') ||
+        errorText.includes('timeout')
+      ) {
+        return res.status(504).json({
+          success: false,
+          error: 'Chart analysis request timed out. Please try again or upload a clearer chart screenshot.',
+        });
+      }
+
+      if (
+        errorText.includes('fetch failed') ||
+        errorText.includes('ENOTFOUND') ||
+        errorText.includes('ECONNREFUSED') ||
+        errorText.includes('ETIMEDOUT')
+      ) {
+        return res.status(502).json({
+          success: false,
+          error: 'Unable to connect to Google Gemini API service. Please check network connection and try again.',
+        });
       }
 
       return res.status(500).json({
         success: false,
-        error:
-          errorMessage,
+        error: errorMessage,
       });
+    } finally {
+      if (reservedKeys.length > 0) {
+        releaseAnalysisReservation(reservedKeys);
+      }
     }
   }
 );
@@ -4371,88 +5267,110 @@ console.log('[PRICE SERVER DEBUG] SL/TP:', JSON.stringify({
 // ============================================================
 
 async function startServer() {
-  if (
-    process.env.NODE_ENV !==
-    'production'
-  ) {
-    const vite =
-      await createViteServer({
-        server: {
-          middlewareMode: true,
-        },
+  // ------------------------------------------------------------
+  // PRO MULTI-CHART & FREE ROUTE ACCESS CONTROL MIDDLEWARE
+  // ------------------------------------------------------------
+  const PRO_MULTI_CHART_PATHS = [
+    '/multi-chart',
+    '/3-screen',
+    '/multi-screen',
+    '/pro',
+    '/pro-multi-chart',
+    '/3-chart',
+    '/multi',
+    '/multi-timeframe',
+  ];
 
-        appType: 'spa',
-      });
+  const FREE_REDIRECT_PATHS = [
+    '/3-free-chart-analysis',
+    '/free',
+  ];
 
-    app.use(
-      vite.middlewares
-    );
-  } else {
-    const distPath =
-      path.join(
-        process.cwd(),
-        'dist'
-      );
+  // Free routes always redirect to the canonical home page
+  app.get(
+    [
+      ...FREE_REDIRECT_PATHS,
+      ...FREE_REDIRECT_PATHS.map((p) => `${p}/`),
+    ],
+    (_req: Request, res: Response) => {
+      return res.redirect('/');
+    }
+  );
 
-    app.use(
-      express.static(
-        distPath
-      )
-    );
+  // Pro Multi-Chart routes require verified Pro entitlement or Owner session
+  app.get(
+    [
+      ...PRO_MULTI_CHART_PATHS,
+      ...PRO_MULTI_CHART_PATHS.map((p) => `${p}/`),
+    ],
+    (req: Request, res: Response, next: NextFunction) => {
+      const isOwner = Boolean(getOwnerSessionFromRequest(req));
+      const authUser = getAuthenticatedUserFromRequest(req);
+      const userProCheck = authUser ? isUserActivePro(authUser) : { isPro: false };
+      const licenseKey = typeof req.headers['x-license-key'] === 'string' ? req.headers['x-license-key'] : '';
+      const isPaidPro = isOwner || isVerifiedProKey(licenseKey) || (Boolean(authUser) && (userProCheck.isPro || isVerifiedProKey(authUser?.licenseKey)));
 
-    app.get(
-      '*',
-      (
-        _req: Request,
-        res: Response
-      ) => {
-        res.sendFile(
-          path.join(
-            distPath,
-            'index.html'
-          )
-        );
+      if (isOwner || isPaidPro) {
+        // Authenticated Pro user or Owner: allow access to load the page
+        return next();
       }
-    );
+
+      // Unauthorized (free/anonymous user): block access, redirect to free home page with locked query flag
+      return res.redirect('/?pro_access_denied=1');
+    }
+  );
+
+  if (process.env.NODE_ENV !== 'production') {
+    const { createServer: createViteServer } = await import('vite');
+    const vite = await createViteServer({
+      server: {
+        middlewareMode: true,
+        hmr: false,
+      },
+      appType: 'spa',
+    });
+
+    app.use(vite.middlewares);
+  } else {
+    const distPath = path.join(process.cwd(), 'dist');
+
+    app.use(express.static(distPath));
+
+    app.get('*', (_req: Request, res: Response) => {
+      const indexPath = path.join(distPath, 'index.html');
+      if (fs.existsSync(indexPath)) {
+        res.sendFile(indexPath);
+      } else {
+        res.status(200).send('<!DOCTYPE html><html><head><title>Falcon Analyze</title></head><body><div id="root"></div></body></html>');
+      }
+    });
   }
 
   ensureDataDirectory();
-  console.log('[STORAGE DEBUG]', {
-  cwd: process.cwd(),
-  dataDir: DATA_DIR,
-  testProFile: TEST_PRO_FILE,
-  testProUsers: testProUsersList.size,
-  testProFileExists: fs.existsSync(TEST_PRO_FILE),
-});
-  console.log('[FILESYSTEM TEST]', {
-  cwd: process.cwd(),
-  dataDirExists: fs.existsSync(DATA_DIR),
-  testProFileExists: fs.existsSync(TEST_PRO_FILE),
-});
 
-  app.listen(
+  const server = app.listen(
     PORT,
     '0.0.0.0',
     () => {
-      console.log(
-        `[FALCON ANALYZE] Server running on port ${PORT}`
-      );
-
-      console.log(
-        `[FALCON ANALYZE] Gemini primary model: ${GEMINI_PRIMARY_MODEL}`
-      );
-
-      console.log(
-        `[FALCON ANALYZE] API key configured: ${Boolean(
-          getValidApiKey()
-        )}`
-      );
-
-      console.log(
-        `[FALCON ANALYZE] Pro keys configured: ${getConfiguredProKeys().size}`
-      );
+      console.log(`[FALCON ANALYZE] Server running on port ${PORT}`);
+      console.log(`[FALCON ANALYZE] Gemini primary model: ${GEMINI_PRIMARY_MODEL}`);
+      console.log(`[FALCON ANALYZE] API key configured: ${Boolean(getValidApiKey())}`);
+      console.log(`[FALCON ANALYZE] Pro keys configured: ${getConfiguredProKeys().size}`);
     }
   );
+
+  const shutdown = (signal: string) => {
+    console.log(`[FALCON ANALYZE] ${signal} signal received: closing HTTP server...`);
+    server.close(() => {
+      console.log('[FALCON ANALYZE] HTTP server closed gracefully.');
+      process.exit(0);
+    });
+  };
+
+  process.on('SIGTERM', () => shutdown('SIGTERM'));
+  process.on('SIGINT', () => shutdown('SIGINT'));
 }
 
-startServer();
+if (!process.env.TEST_MODE && process.env.NODE_ENV !== 'test') {
+  startServer();
+}

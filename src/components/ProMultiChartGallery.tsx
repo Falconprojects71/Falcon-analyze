@@ -40,35 +40,32 @@ export const ProMultiChartGallery: React.FC<ProMultiChartGalleryProps> = ({
   const slotMetadata = [
     {
       slotNum: 1,
-      title: 'CHART 1: HIGHER TIMEFRAME',
-      defaultTf: '4H',
+      title: 'CHART 1',
       role: 'Overall Trend & Market Structure (Macro Direction)',
       roleIcon: Layers,
-      accentColor: 'text-indigo-400',
-      borderColor: 'border-indigo-500/30',
-      badgeBg: 'bg-indigo-500/10 text-indigo-300 border-indigo-500/30',
+      accentColor: 'text-[#245BDB]',
+      borderColor: 'border-[#D8DFEA]',
+      badgeBg: 'bg-[#E8F0FF] text-[#245BDB] border-[#245BDB]/30',
       geminiData: analysis?.multiTimeframeAnalysis?.chart1,
     },
     {
       slotNum: 2,
-      title: 'CHART 2: MIDDLE TIMEFRAME',
-      defaultTf: '1H',
+      title: 'CHART 2',
       role: 'Support & Resistance / Confluence (Key Reaction Zones)',
       roleIcon: Shield,
-      accentColor: 'text-cyan-400',
-      borderColor: 'border-cyan-500/30',
-      badgeBg: 'bg-cyan-500/10 text-cyan-300 border-cyan-500/30',
+      accentColor: 'text-[#16B8D4]',
+      borderColor: 'border-[#D8DFEA]',
+      badgeBg: 'bg-[#16B8D4]/10 text-[#16B8D4] border-[#16B8D4]/30',
       geminiData: analysis?.multiTimeframeAnalysis?.chart2,
     },
     {
       slotNum: 3,
-      title: 'CHART 3: LOWER TIMEFRAME',
-      defaultTf: '15M',
+      title: 'CHART 3',
       role: 'Entry Setup & Precision Trigger (Execution & Invalidation)',
       roleIcon: Target,
-      accentColor: 'text-emerald-400',
-      borderColor: 'border-emerald-500/30',
-      badgeBg: 'bg-emerald-500/10 text-emerald-300 border-emerald-500/30',
+      accentColor: 'text-[#16A36A]',
+      borderColor: 'border-[#D8DFEA]',
+      badgeBg: 'bg-[#16A36A]/10 text-[#16A36A] border-[#16A36A]/30',
       geminiData: analysis?.multiTimeframeAnalysis?.chart3,
     },
   ];
@@ -85,33 +82,33 @@ export const ProMultiChartGallery: React.FC<ProMultiChartGalleryProps> = ({
 
   return (
     <div
-      className="bg-[#0A0E18] border border-slate-800 rounded-xl p-4 sm:p-5 shadow-2xl space-y-4"
+      className="bg-white border border-[#D8DFEA] rounded-xl p-4 sm:p-5 shadow-card space-y-4"
       id="pro-three-charts-showcase"
     >
       {/* Header */}
-      <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-slate-800/80">
+      <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-[#D8DFEA]">
         <div className="flex items-center gap-2.5">
-          <div className="p-2 rounded-lg bg-cyan-500/10 border border-cyan-500/30 text-cyan-400">
+          <div className="p-2 rounded-lg bg-[#E8F0FF] border border-[#245BDB]/30 text-[#245BDB]">
             <Layers className="w-5 h-5" />
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <h3 className="text-sm font-bold font-mono uppercase tracking-wider text-white">
+              <h3 className="text-sm font-bold font-mono uppercase tracking-wider text-[#182338]">
                 ORIGINAL MULTI-TIMEFRAME CHARTS
               </h3>
-              <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 font-bold flex items-center gap-1">
+              <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-[#16A36A]/10 text-[#16A36A] border border-[#16A36A]/30 font-bold flex items-center gap-1">
                 <CheckCircle2 className="w-3 h-3" />
                 {validImages.length} SCANNED BY GEMINI VISION
               </span>
             </div>
-            <p className="text-[11px] font-mono text-slate-400 mt-0.5">
+            <p className="text-[11px] font-mono text-[#64748B] mt-0.5">
               Top-Down Analysis: Higher Timeframe (Direction) → Middle Timeframe (S/R Confluence) → Lower Timeframe (Entry)
             </p>
           </div>
         </div>
 
-        <div className="text-[11px] font-mono text-slate-400 flex items-center gap-1.5">
-          <Eye className="w-3.5 h-3.5 text-cyan-400" />
+        <div className="text-[11px] font-mono text-[#64748B] flex items-center gap-1.5">
+          <Eye className="w-3.5 h-3.5 text-[#245BDB]" />
           <span>Clean Original Charts (No AI Overlays)</span>
         </div>
       </div>
@@ -129,29 +126,26 @@ export const ProMultiChartGallery: React.FC<ProMultiChartGalleryProps> = ({
         {validImages.map((img, idx) => {
           const meta = slotMetadata[idx] || slotMetadata[slotMetadata.length - 1];
           const SlotRoleIcon = meta.roleIcon;
-          const displayTf = img.timeframe || meta.defaultTf;
+          const displayTf = img.timeframe || meta.geminiData?.timeframe || `Chart ${idx + 1}`;
           const obsText = meta.geminiData?.observations || meta.geminiData?.role;
 
           return (
             <div
               key={img.id || idx}
-              className={`bg-slate-900/70 border ${meta.borderColor} rounded-xl overflow-hidden flex flex-col transition-all hover:border-cyan-500/60 group`}
+              className="bg-white border border-[#D8DFEA] rounded-xl overflow-hidden flex flex-col transition-all hover:border-[#245BDB] shadow-sm group"
             >
               {/* Card Top Header */}
-              <div className="p-3 bg-slate-950/80 border-b border-slate-800/80 flex items-center justify-between gap-2">
+              <div className="p-3 bg-[#E9EDF5] border-b border-[#D8DFEA] flex items-center justify-between gap-2">
                 <div className="flex items-center gap-2 min-w-0">
-                  <div className="w-2 h-2 rounded-full bg-emerald-400 shrink-0" />
-                  <span className="text-xs font-mono font-bold text-slate-200 truncate">
+                  <div className="w-2 h-2 rounded-full bg-[#16A36A] shrink-0" />
+                  <span className="text-xs font-mono font-bold text-[#182338] truncate">
                     {meta.title}
                   </span>
                 </div>
-                <span className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded border ${meta.badgeBg} shrink-0`}>
-                  {displayTf}
-                </span>
               </div>
 
               {/* Role Sub-Banner */}
-              <div className="px-3 py-1.5 bg-black/40 border-b border-slate-800/60 flex items-center gap-1.5 text-[11px] font-mono text-slate-300">
+              <div className="px-3 py-1.5 bg-[#F2F4F8] border-b border-[#D8DFEA] flex items-center gap-1.5 text-[11px] font-mono text-[#64748B]">
                 <SlotRoleIcon className={`w-3.5 h-3.5 shrink-0 ${meta.accentColor}`} />
                 <span className="truncate">{meta.role}</span>
               </div>
@@ -170,25 +164,39 @@ export const ProMultiChartGallery: React.FC<ProMultiChartGalleryProps> = ({
                 />
 
                 {/* Inspect Overlay Trigger */}
-                <div className="absolute inset-0 bg-slate-950/50 opacity-0 group-hover/img:opacity-100 transition-opacity flex items-center justify-center gap-2 text-xs font-mono text-white pointer-events-none">
-                  <span className="px-3 py-1.5 rounded-lg bg-slate-900/90 border border-slate-700 shadow-xl flex items-center gap-1.5">
-                    <Maximize2 className="w-3.5 h-3.5 text-cyan-400" />
+                <div className="absolute inset-0 bg-[#182338]/50 opacity-0 group-hover/img:opacity-100 transition-opacity flex items-center justify-center gap-2 text-xs font-mono text-white pointer-events-none">
+                  <span className="px-3 py-1.5 rounded-lg bg-[#182338]/95 border border-[#D8DFEA]/40 shadow-xl flex items-center gap-1.5">
+                    <Maximize2 className="w-3.5 h-3.5 text-[#16B8D4]" />
                     Inspect High-Res
                   </span>
                 </div>
               </div>
 
               {/* Card Footer: Synthesis Findings */}
-              <div className="p-3 bg-slate-950/90 border-t border-slate-800/80 text-[11px] font-mono space-y-1.5">
-                <div className="flex items-center justify-between text-slate-400 text-[10px]">
+              <div className="p-3 bg-white border-t border-[#D8DFEA] text-[11px] font-mono space-y-1.5">
+                <div className="flex items-center justify-between text-[#64748B] text-[10px]">
                   <span>VISUAL EVIDENCE:</span>
-                  <span className="text-emerald-400 flex items-center gap-1">
+                  <span className="text-[#16A36A] flex items-center gap-1">
                     <CheckCircle2 className="w-3 h-3" /> Scanned
                   </span>
                 </div>
-                <p className="text-slate-300 line-clamp-2 leading-relaxed text-[11px]">
+                <p className="text-[#182338] line-clamp-2 leading-relaxed text-[11px]">
                   {obsText || `${displayTf} chart evaluated for ${meta.role.toLowerCase()}.`}
                 </p>
+                {(meta.geminiData?.support1?.price || meta.geminiData?.resistance1?.price) && (
+                  <div className="pt-1.5 border-t border-[#D8DFEA] flex items-center justify-between text-[11px] font-mono">
+                    {meta.geminiData?.support1?.price && (
+                      <span className="text-[#16A36A]" title={meta.geminiData.support1.rationale || 'Support S1'}>
+                        <strong className="text-[#64748B] font-semibold text-[10px]">S1:</strong> ${typeof meta.geminiData.support1.price === 'number' ? meta.geminiData.support1.price.toLocaleString() : meta.geminiData.support1.price}
+                      </span>
+                    )}
+                    {meta.geminiData?.resistance1?.price && (
+                      <span className="text-[#DC4655]" title={meta.geminiData.resistance1.rationale || 'Resistance R1'}>
+                        <strong className="text-[#64748B] font-semibold text-[10px]">R1:</strong> ${typeof meta.geminiData.resistance1.price === 'number' ? meta.geminiData.resistance1.price.toLocaleString() : meta.geminiData.resistance1.price}
+                      </span>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
           );
@@ -198,20 +206,17 @@ export const ProMultiChartGallery: React.FC<ProMultiChartGalleryProps> = ({
       {/* Lightbox / High-Res Inspection Modal */}
       {selectedZoomIndex !== null && validImages[selectedZoomIndex] && (
         <div
-          className="fixed inset-0 z-50 bg-slate-950/90 backdrop-blur-md flex flex-col p-4 sm:p-6"
+          className="fixed inset-0 z-50 bg-[#182338]/85 backdrop-blur-sm flex flex-col p-4 sm:p-6"
           onClick={handleCloseLightbox}
         >
           {/* Lightbox Controls Bar */}
           <div
-            className="flex items-center justify-between gap-4 p-3 bg-slate-900/90 border border-slate-800 rounded-xl mb-4 text-white font-mono text-xs max-w-5xl w-full mx-auto shadow-2xl"
+            className="flex items-center justify-between gap-4 p-3 bg-[#E9EDF5] border border-[#D8DFEA] rounded-xl mb-4 text-[#182338] font-mono text-xs max-w-5xl w-full mx-auto shadow-2xl"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center gap-2">
-              <span className="font-bold text-slate-200">
+              <span className="font-bold text-[#182338]">
                 {slotMetadata[selectedZoomIndex]?.title || `CHART ${selectedZoomIndex + 1}`}
-              </span>
-              <span className="text-[10px] px-2 py-0.5 rounded bg-cyan-500/20 text-cyan-300 border border-cyan-500/40">
-                {validImages[selectedZoomIndex]?.timeframe || slotMetadata[selectedZoomIndex]?.defaultTf}
               </span>
             </div>
 
@@ -219,16 +224,16 @@ export const ProMultiChartGallery: React.FC<ProMultiChartGalleryProps> = ({
               <button
                 type="button"
                 onClick={() => setZoomLevel((z) => Math.max(0.5, z - 0.25))}
-                className="p-1.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700 cursor-pointer"
+                className="p-1.5 rounded bg-white hover:bg-[#F2F4F8] text-[#182338] border border-[#D8DFEA] cursor-pointer"
                 title="Zoom Out"
               >
                 <ZoomOut className="w-4 h-4" />
               </button>
-              <span className="text-xs px-2">{Math.round(zoomLevel * 100)}%</span>
+              <span className="text-xs px-2 text-[#182338] font-bold">{Math.round(zoomLevel * 100)}%</span>
               <button
                 type="button"
                 onClick={() => setZoomLevel((z) => Math.min(3, z + 0.25))}
-                className="p-1.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700 cursor-pointer"
+                className="p-1.5 rounded bg-white hover:bg-[#F2F4F8] text-[#182338] border border-[#D8DFEA] cursor-pointer"
                 title="Zoom In"
               >
                 <ZoomIn className="w-4 h-4" />
@@ -236,7 +241,7 @@ export const ProMultiChartGallery: React.FC<ProMultiChartGalleryProps> = ({
               <button
                 type="button"
                 onClick={() => setZoomLevel(1)}
-                className="p-1.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700 cursor-pointer"
+                className="p-1.5 rounded bg-white hover:bg-[#F2F4F8] text-[#182338] border border-[#D8DFEA] cursor-pointer"
                 title="Reset Zoom"
               >
                 <RotateCcw className="w-4 h-4" />
@@ -244,7 +249,7 @@ export const ProMultiChartGallery: React.FC<ProMultiChartGalleryProps> = ({
               <button
                 type="button"
                 onClick={handleCloseLightbox}
-                className="p-1.5 rounded bg-rose-950/80 hover:bg-rose-900 text-rose-300 border border-rose-500/40 cursor-pointer ml-2"
+                className="p-1.5 rounded bg-white hover:bg-rose-50 text-[#DC4655] border border-[#D8DFEA] hover:border-[#DC4655]/40 cursor-pointer ml-2"
                 title="Close"
               >
                 <X className="w-4 h-4" />
