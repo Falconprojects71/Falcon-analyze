@@ -57,22 +57,29 @@ export const ChartAnnotator: React.FC<ChartAnnotatorProps> = ({
   const activeImage = images[activeImageIndex];
   const uploadedCount = images.filter((img) => img.base64).length;
 
+  const activeChartMtf = activeImageIndex === 0
+    ? analysis?.multiTimeframeAnalysis?.chart1
+    : activeImageIndex === 1
+    ? analysis?.multiTimeframeAnalysis?.chart2
+    : activeImageIndex === 2
+    ? analysis?.multiTimeframeAnalysis?.chart3
+    : undefined;
+
   return (
     <div
-      className={`bg-[#0D121F] border border-slate-800 rounded-xl overflow-hidden shadow-xl flex flex-col ${
-        isFullscreen ? 'fixed inset-0 z-50 rounded-none bg-[#080B11]' : 'relative'
+      className={`bg-white border border-[#D8DFEA] rounded-xl overflow-hidden shadow-card flex flex-col ${
+        isFullscreen ? 'fixed inset-0 z-50 rounded-none bg-[#0B1220]' : 'relative'
       }`}
     >
       {/* Top Toolbar */}
-      <div className="bg-slate-900/90 border-b border-slate-800/80 px-4 py-2.5 flex items-center justify-between gap-2 flex-wrap">
+      <div className="bg-[#E9EDF5] border-b border-[#D8DFEA] px-4 py-2.5 flex items-center justify-between gap-2 flex-wrap">
         <div className="flex items-center gap-2">
-          <span className="w-2 h-2 rounded-full bg-emerald-400" />
-          <span className="text-xs font-mono font-bold text-slate-200 uppercase tracking-wide">
-            Chart Viewport {analysis?.asset ? `• ${analysis.asset}` : ''}{' '}
-            {activeImage?.timeframe ? `(${activeImage.timeframe})` : analysis?.timeframe ? `(${analysis.timeframe})` : ''}
+          <span className="w-2 h-2 rounded-full bg-[#16A36A]" />
+          <span className="text-xs font-mono font-bold text-[#182338] uppercase tracking-wide">
+            Chart Viewport {analysis?.asset ? `• ${analysis.asset}` : ''}
           </span>
           {isPro && uploadedCount > 1 && (
-            <span className="px-2 py-0.5 rounded bg-cyan-950/70 border border-cyan-500/40 text-[10px] font-mono text-cyan-300 font-bold">
+            <span className="px-2 py-0.5 rounded bg-[#E8F0FF] border border-[#245BDB]/30 text-[10px] font-mono text-[#245BDB] font-bold">
               CHART {activeImageIndex + 1} OF {uploadedCount}
             </span>
           )}
@@ -84,43 +91,43 @@ export const ChartAnnotator: React.FC<ChartAnnotatorProps> = ({
             onClick={() => setShowCrosshair(!showCrosshair)}
             className={`p-1.5 rounded text-xs font-mono flex items-center transition-all cursor-pointer ${
               showCrosshair
-                ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40'
-                : 'bg-slate-800 text-slate-400 border border-slate-700 hover:text-white'
+                ? 'bg-[#245BDB] text-white border border-[#245BDB] shadow-xs'
+                : 'bg-white text-[#64748B] hover:text-[#182338] hover:bg-[#F2F4F8] border border-[#D8DFEA]'
             }`}
             title="Toggle Precision Crosshair"
           >
             <Crosshair className="w-3.5 h-3.5" />
           </button>
 
-          <div className="h-4 w-px bg-slate-800 mx-1" />
+          <div className="h-4 w-px bg-[#D8DFEA] mx-1" />
 
           <button
             onClick={handleZoomIn}
-            className="p-1.5 rounded bg-slate-800 text-slate-300 hover:text-white border border-slate-700 transition-all cursor-pointer"
+            className="p-1.5 rounded bg-white text-[#64748B] hover:text-[#182338] hover:bg-[#F2F4F8] border border-[#D8DFEA] transition-all cursor-pointer"
             title="Zoom In"
           >
             <ZoomIn className="w-3.5 h-3.5" />
           </button>
           <button
             onClick={handleZoomOut}
-            className="p-1.5 rounded bg-slate-800 text-slate-300 hover:text-white border border-slate-700 transition-all cursor-pointer"
+            className="p-1.5 rounded bg-white text-[#64748B] hover:text-[#182338] hover:bg-[#F2F4F8] border border-[#D8DFEA] transition-all cursor-pointer"
             title="Zoom Out"
           >
             <ZoomOut className="w-3.5 h-3.5" />
           </button>
           <button
             onClick={handleResetZoom}
-            className="p-1.5 rounded bg-slate-800 text-slate-300 hover:text-white border border-slate-700 transition-all cursor-pointer"
+            className="p-1.5 rounded bg-white text-[#64748B] hover:text-[#182338] hover:bg-[#F2F4F8] border border-[#D8DFEA] transition-all cursor-pointer"
             title="Reset Zoom"
           >
             <RotateCcw className="w-3.5 h-3.5" />
           </button>
 
-          <div className="h-4 w-px bg-slate-800 mx-1" />
+          <div className="h-4 w-px bg-[#D8DFEA] mx-1" />
 
           <button
             onClick={() => setIsFullscreen(!isFullscreen)}
-            className="p-1.5 rounded bg-slate-800 text-slate-300 hover:text-white border border-slate-700 transition-all cursor-pointer"
+            className="p-1.5 rounded bg-white text-[#64748B] hover:text-[#182338] hover:bg-[#F2F4F8] border border-[#D8DFEA] transition-all cursor-pointer"
             title={isFullscreen ? 'Exit Fullscreen' : 'Fullscreen'}
           >
             {isFullscreen ? <Minimize2 className="w-3.5 h-3.5" /> : <Maximize2 className="w-3.5 h-3.5" />}
@@ -130,16 +137,15 @@ export const ChartAnnotator: React.FC<ChartAnnotatorProps> = ({
 
       {/* Multi-Chart Switcher Banner for PRO when multiple charts are uploaded */}
       {images.length > 1 && uploadedCount > 1 && (
-        <div className="bg-slate-950/90 border-b border-slate-800 px-4 py-2 flex items-center justify-between gap-2 overflow-x-auto">
+        <div className="bg-[#F2F4F8] border-b border-[#D8DFEA] px-4 py-2 flex items-center justify-between gap-2 overflow-x-auto">
           <div className="flex items-center gap-2 shrink-0">
-            <Layers className="w-3.5 h-3.5 text-cyan-400" />
-            <span className="text-[11px] font-mono text-slate-400">PRO MULTI-TIMEFRAME VIEW:</span>
+            <Layers className="w-3.5 h-3.5 text-[#245BDB]" />
+            <span className="text-[11px] font-mono text-[#64748B] font-semibold">PRO MULTI-TIMEFRAME VIEW:</span>
           </div>
           <div className="flex items-center gap-2">
             {images.map((img, idx) => {
               if (!img.base64) return null;
               const isActive = activeImageIndex === idx;
-              const defaultRoles = ['Higher TF', 'Middle TF', 'Lower TF'];
               return (
                 <button
                   key={img.id || idx}
@@ -147,13 +153,13 @@ export const ChartAnnotator: React.FC<ChartAnnotatorProps> = ({
                   onClick={() => onSelectImageIndex?.(idx)}
                   className={`px-2.5 py-1 rounded text-xs font-mono font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
                     isActive
-                      ? 'bg-cyan-500 text-slate-950 shadow-[0_0_12px_rgba(6,182,212,0.4)]'
-                      : 'bg-slate-900 text-slate-300 border border-slate-700 hover:border-cyan-500/50 hover:text-white'
+                      ? 'bg-[#245BDB] text-white shadow-xs'
+                      : 'bg-white text-[#182338] border border-[#D8DFEA] hover:border-[#245BDB] hover:text-[#245BDB]'
                   }`}
                 >
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-                  <span>CHART {idx + 1} ({img.timeframe || defaultRoles[idx] || 'TF'})</span>
-                  {isActive && <CheckCircle2 className="w-3 h-3 text-slate-950 ml-0.5" />}
+                  <span className={`w-1.5 h-1.5 rounded-full ${isActive ? 'bg-white' : 'bg-[#16A36A]'}`} />
+                  <span>CHART {idx + 1}</span>
+                  {isActive && <CheckCircle2 className="w-3 h-3 text-white ml-0.5" />}
                 </button>
               );
             })}
@@ -182,7 +188,7 @@ export const ChartAnnotator: React.FC<ChartAnnotatorProps> = ({
                     GEMINI VISION SCANNING MULTI-TIMEFRAME STRUCTURE
                   </div>
                   <div className="text-[11px] font-mono text-slate-400">
-                    Extracting 4H macro trend, 1H confluence & 15M entry timing...
+                    Extracting multi-timeframe trend, confluence & entry timing...
                   </div>
                 </div>
               </div>
@@ -231,24 +237,32 @@ export const ChartAnnotator: React.FC<ChartAnnotatorProps> = ({
       </div>
 
       {/* Bottom status bar */}
-      <div className="bg-slate-900/60 border-t border-slate-800/80 px-4 py-2 flex items-center justify-between text-[11px] font-mono text-slate-400 flex-wrap gap-2">
-        <div className="flex items-center gap-3">
+      <div className="bg-[#E9EDF5] border-t border-[#D8DFEA] px-4 py-2 flex items-center justify-between text-[11px] font-mono text-[#64748B] flex-wrap gap-2">
+        <div className="flex items-center gap-3 flex-wrap">
           <span>Zoom: {Math.round(zoom * 100)}%</span>
           {activeImage?.timeframe && (
             <span>
-              Timeframe: <strong className="text-cyan-300">{activeImage.timeframe}</strong>
+              Timeframe: <strong className="text-[#245BDB]">{activeImage.timeframe}</strong>
             </span>
           )}
-          {analysis && Number(analysis.currentPrice) > 0 && (
-  <span>
-    Last Price Detected:{' '}
-    <strong className="text-white font-bold">
-      ${Number(analysis.currentPrice).toLocaleString()}
-    </strong>
-  </span>
-)}
+          {activeChartMtf?.support1?.price && (
+            <span className="text-[#16A36A]" title={activeChartMtf.support1.rationale || 'Chart S1'}>
+              S1: <strong className="text-[#16A36A]">${typeof activeChartMtf.support1.price === 'number' ? activeChartMtf.support1.price.toLocaleString() : activeChartMtf.support1.price}</strong>
+            </span>
+          )}
+          {activeChartMtf?.resistance1?.price && (
+            <span className="text-[#DC4655]" title={activeChartMtf.resistance1.rationale || 'Chart R1'}>
+              R1: <strong className="text-[#DC4655]">${typeof activeChartMtf.resistance1.price === 'number' ? activeChartMtf.resistance1.price.toLocaleString() : activeChartMtf.resistance1.price}</strong>
+            </span>
+          )}
+          {analysis && typeof analysis.currentPrice === 'number' && analysis.currentPrice > 0 && (
+            <span>
+              Last Price Detected:{' '}
+              <strong className="text-[#182338] font-bold">${analysis.currentPrice.toLocaleString()}</strong>
+            </span>
+          )}
         </div>
-        <div className="text-slate-500">
+        <div className="text-[#64748B]">
           {images.length > 1 && uploadedCount > 1
             ? 'Use tabs above to switch between uploaded timeframes'
             : 'Click & Drag or use mouse wheel to inspect'}

@@ -1,234 +1,448 @@
-import React from 'react';
-import { History, RefreshCw, BarChart2, Crown, Lock, ShieldCheck, LogOut, Shield } from 'lucide-react';
+import React, { useState, useRef, useEffect } from 'react';
+import {
+  RefreshCw,
+  BarChart2,
+  Crown,
+  Lock,
+  User,
+  LogIn,
+  UserPlus,
+  LogOut,
+  Shield,
+  Settings,
+  Sun,
+  Moon,
+  ChevronDown,
+  LayoutDashboard,
+  LineChart,
+} from 'lucide-react';
+import { AuthUser } from '../types';
 
 interface HeaderProps {
-  onOpenHistory: () => void;
-  historyCount: number;
   onReset: () => void;
   isAnalyzing: boolean;
   isProUser: boolean;
-  isTestPro?: boolean;
-  testProRemainingTime?: string;
-  userId?: string;
+  authUser?: AuthUser | null;
+  isOwner?: boolean;
+  onOpenOwnerPortal?: () => void;
+  onOpenLogin?: () => void;
+  onOpenRegister?: () => void;
   onOpenUserAccountModal?: () => void;
   onOpenUpgradeModal: () => void;
+  onLogout?: () => void;
   freeAnalysisCount?: number;
   maxFreeAnalyses?: number;
   freeLimitReached?: boolean;
-  isOwner?: boolean;
-  ownerEmail?: string;
-  onOpenOwnerModal?: () => void;
-  onOwnerLogout?: () => void;
+  currentView?: 'landing' | 'terminal';
+  onSelectView?: (view: 'landing' | 'terminal') => void;
+  isDarkMode?: boolean;
+  onToggleTheme?: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
-  onOpenHistory,
-  historyCount,
   onReset,
   isAnalyzing,
   isProUser,
-  isTestPro = false,
-  testProRemainingTime = '',
-  userId = '',
+  authUser,
+  isOwner = false,
+  onOpenOwnerPortal,
+  onOpenLogin,
+  onOpenRegister,
   onOpenUserAccountModal,
   onOpenUpgradeModal,
+  onLogout,
   freeAnalysisCount = 0,
   maxFreeAnalyses = 3,
   freeLimitReached = false,
-  isOwner = false,
-  ownerEmail = '',
-  onOpenOwnerModal,
-  onOwnerLogout,
+  currentView = 'landing',
+  onSelectView,
+  isDarkMode = false,
+  onToggleTheme,
 }) => {
+  const [isMenuOpen, setIsMenuOpen] = useState<boolean>(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  // Close menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        setIsMenuOpen(false);
+      }
+    };
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setIsMenuOpen(false);
+      }
+    };
+
+    if (isMenuOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+      document.addEventListener('keydown', handleKeyDown);
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [isMenuOpen]);
+
   return (
-    <header className="sticky top-0 z-30 border-b border-slate-800/80 bg-[#080B11]/90 backdrop-blur-md px-4 sm:px-6 py-3">
-      <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-        {/* Brand & Status */}
+    <header className="sticky top-0 z-40 border-b border-[#D8DFEA] dark:border-[#243046] bg-white/95 dark:bg-[#111827]/95 backdrop-blur-md px-4 sm:px-6 py-2.5 shadow-xs transition-colors duration-200">
+      <div className="max-w-7xl mx-auto flex items-center justify-between gap-3">
+        {/* Brand & Plan Status */}
         <div className="flex items-center gap-3">
-          <div
-            className={`h-9 w-9 rounded-lg border flex items-center justify-center shadow-[0_0_15px_rgba(0,240,160,0.2)] ${
-              isOwner
-                ? 'bg-gradient-to-tr from-purple-500/20 via-indigo-500/20 to-purple-500/30 border-purple-500/40 text-purple-400'
-                : isTestPro
-                ? 'bg-gradient-to-tr from-cyan-500/20 via-blue-500/20 to-emerald-500/30 border-cyan-500/40 text-cyan-400'
-                : 'bg-gradient-to-tr from-cyan-500/20 via-emerald-500/20 to-teal-500/30 border-emerald-500/30 text-[#00F0A0]'
-            }`}
+          <button
+            type="button"
+            onClick={() => onSelectView?.(authUser ? 'terminal' : 'landing')}
+            className="flex items-center gap-2.5 text-left cursor-pointer group"
           >
-            {isOwner ? <Shield className="w-5 h-5" /> : <BarChart2 className="w-5 h-5" />}
-          </div>
-          <div>
-            <div className="flex items-center gap-2 flex-wrap">
-              <h1 className="text-base font-bold tracking-tight text-white flex items-center gap-1.5">
-                FALCON <span className={isOwner ? 'text-purple-400' : isTestPro ? 'text-cyan-400' : 'text-[#00F0A0]'}>ANALYZE</span>
-              </h1>
-              {isOwner ? (
-                <span className="flex items-center gap-1 text-[10px] font-mono font-bold px-2.5 py-0.5 rounded-full bg-gradient-to-r from-purple-500/20 via-indigo-500/20 to-purple-600/20 text-purple-300 border border-purple-500/40 shadow-[0_0_10px_rgba(168,85,247,0.2)]">
-                  <ShieldCheck className="w-3 h-3 text-purple-400" />
-                  OWNER MODE
-                </span>
-              ) : isTestPro ? (
-                <span className="flex items-center gap-1 text-[10px] font-mono font-bold px-2.5 py-0.5 rounded-full bg-gradient-to-r from-cyan-500/20 via-blue-500/20 to-emerald-500/20 text-cyan-300 border border-cyan-400/40 shadow-[0_0_12px_rgba(6,182,212,0.25)] animate-pulse">
-                  <Crown className="w-3 h-3 text-cyan-400" />
-                  PRO — TEST ACCESS
-                </span>
-              ) : isProUser ? (
-                <span className="flex items-center gap-1 text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-gradient-to-r from-amber-500/20 to-amber-600/20 text-amber-300 border border-amber-500/40">
-                  <Crown className="w-3 h-3 text-amber-400" />
-                  PRO
-                </span>
-              ) : freeLimitReached ? (
-                <span className="flex items-center gap-1 text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/40">
-                  <Lock className="w-2.5 h-2.5" />
-                  FREE ({freeAnalysisCount}/{maxFreeAnalyses} USED)
-                </span>
-              ) : (
-                <span className="text-[10px] font-mono font-semibold px-2 py-0.5 rounded-full bg-slate-800 text-slate-400 border border-slate-700">
-                  FREE ({freeAnalysisCount}/{maxFreeAnalyses})
-                </span>
-              )}
+            <div className="h-9 w-9 rounded-xl border flex items-center justify-center transition-all shadow-xs bg-[#E8F0FF] dark:bg-[#245BDB]/20 border-[#D8DFEA] dark:border-[#243046] text-[#245BDB] dark:text-[#3B82F6] group-hover:border-[#245BDB]/60">
+              <BarChart2 className="w-5 h-5" />
             </div>
-            {isOwner ? (
-              <p className="text-xs text-slate-400 font-mono flex items-center gap-1.5">
-                <span className="inline-block w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                <span className="text-emerald-400 font-bold">✓ Owner Access Active</span>
-                <span className="text-slate-500 hidden sm:inline">&bull; Unlimited Testing & User Management</span>
-              </p>
-            ) : isTestPro ? (
-              <p className="text-xs text-slate-400 font-mono flex items-center gap-1.5">
-                <span className="inline-block w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse" />
-                <span className="text-cyan-400 font-bold">✓ Temporary Pro Testing Active</span>
-                {testProRemainingTime && (
-                  <span className="text-slate-400">&bull; {testProRemainingTime}</span>
+            <div>
+              <div className="flex items-center gap-2 flex-wrap">
+                <h1 className="text-base font-extrabold tracking-tight text-[#182338] dark:text-[#F1F5F9] flex items-center gap-1.5">
+                  FALCON <span className="text-[#245BDB] dark:text-[#3B82F6]">ANALYZE</span>
+                </h1>
+                {isProUser ? (
+                  <span className="flex items-center gap-1 text-[10px] font-mono font-bold px-2 py-0.5 rounded-md bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-800">
+                    <Crown className="w-3 h-3 text-amber-500" />
+                    PRO
+                  </span>
+                ) : freeLimitReached ? (
+                  <span className="flex items-center gap-1 text-[10px] font-mono font-bold px-2 py-0.5 rounded-md bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-800">
+                    <Lock className="w-2.5 h-2.5" />
+                    FREE ({freeAnalysisCount}/{maxFreeAnalyses} USED)
+                  </span>
+                ) : (
+                  <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-md bg-[#E8F0FF] dark:bg-[#245BDB]/20 text-[#245BDB] dark:text-[#3B82F6] border border-[#245BDB]/30">
+                    {Math.max(0, maxFreeAnalyses - freeAnalysisCount)} FREE LEFT
+                  </span>
                 )}
-              </p>
-            ) : (
-              <p className="text-xs text-slate-400 font-mono flex items-center gap-1.5">
-                <span className="inline-block w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+              </div>
+              <p className="text-[11px] text-[#64748B] dark:text-[#94A3B8] font-mono hidden sm:flex items-center gap-1.5">
+                <span className="inline-block w-1.5 h-1.5 rounded-full bg-[#16A36A]" />
                 Gemini Vision Technical Analysis Engine
               </p>
-            )}
-          </div>
+            </div>
+          </button>
         </div>
 
-        {/* Actions */}
-        <div className="flex items-center gap-2 w-full sm:w-auto justify-end flex-wrap">
-          {/* User Account / ID Button (For testing users to view/copy ID or link email) */}
-          {onOpenUserAccountModal && (
+        {/* Center / Navigation Switcher (Desktop) */}
+        {(authUser || isOwner) && (
+          <div className="hidden lg:flex items-center gap-1 bg-[#F2F4F8] dark:bg-[#0B0F19] p-1 rounded-xl border border-[#D8DFEA] dark:border-[#243046] text-xs font-mono">
             <button
               type="button"
-              onClick={onOpenUserAccountModal}
-              className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border text-xs font-mono transition-all cursor-pointer ${
-                isTestPro
-                  ? 'bg-cyan-950/40 hover:bg-cyan-900/50 border-cyan-500/40 text-cyan-300 shadow-[0_0_10px_rgba(6,182,212,0.15)]'
-                  : 'bg-slate-900 hover:bg-slate-800 border-slate-800 text-slate-400 hover:text-slate-200'
+              onClick={() => onSelectView?.('terminal')}
+              className={`px-3 py-1 rounded-lg font-bold transition-all cursor-pointer ${
+                currentView === 'terminal'
+                  ? 'bg-white dark:bg-[#1E283D] text-[#245BDB] dark:text-[#3B82F6] border border-[#D8DFEA] dark:border-[#243046] shadow-xs'
+                  : 'text-[#64748B] dark:text-[#94A3B8] hover:text-[#182338] dark:hover:text-[#F1F5F9]'
               }`}
-              title="View User ID or Link Account"
-              id="header-user-account-btn"
             >
-              <span className="font-bold">{userId || 'My Account'}</span>
+              Analysis Terminal
             </button>
-          )}
-
-          {/* Owner Mode Actions vs Test Pro vs Normal User Actions */}
-          {isOwner ? (
-            <div className="flex items-center gap-1.5">
-              <button
-                type="button"
-                onClick={onOpenOwnerModal}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-purple-500/15 hover:bg-purple-500/25 border border-purple-500/40 text-xs font-mono font-bold text-purple-200 transition-all cursor-pointer shadow-[0_0_12px_rgba(168,85,247,0.2)]"
-                title="Owner Controls & Permissions"
-                id="header-owner-status-btn"
-              >
-                <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
-                <span>Admin / Test Pro</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={onOwnerLogout}
-                className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/30 text-xs font-mono font-bold text-rose-300 transition-all cursor-pointer"
-                title="Logout from Owner Mode"
-                id="header-owner-logout-btn"
-              >
-                <LogOut className="w-3.5 h-3.5" />
-                <span className="hidden sm:inline">Logout</span>
-              </button>
-            </div>
-          ) : isTestPro ? (
             <button
               type="button"
-              onClick={onOpenUserAccountModal}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gradient-to-r from-cyan-500/15 via-blue-500/15 to-emerald-500/15 hover:bg-cyan-500/25 border border-cyan-400/40 text-xs font-mono font-bold text-cyan-300 transition-all cursor-pointer shadow-[0_0_12px_rgba(6,182,212,0.2)]"
-              id="header-test-pro-active-btn"
+              onClick={() => onSelectView?.('landing')}
+              className={`px-3 py-1 rounded-lg font-bold transition-all cursor-pointer ${
+                currentView === 'landing'
+                  ? 'bg-white dark:bg-[#1E283D] text-[#245BDB] dark:text-[#3B82F6] border border-[#D8DFEA] dark:border-[#243046] shadow-xs'
+                  : 'text-[#64748B] dark:text-[#94A3B8] hover:text-[#182338] dark:hover:text-[#F1F5F9]'
+              }`}
             >
-              <Crown className="w-3.5 h-3.5 text-cyan-400" />
-              <span>PRO — TEST ACCESS</span>
+              Overview
             </button>
-          ) : isProUser ? (
+          </div>
+        )}
+
+        {/* Right Area: Unified Settings / Menu Dropdown */}
+        <div className="flex items-center gap-2" ref={menuRef}>
+          {/* Quick Upgrade Callout (if not pro) */}
+          {!isProUser && (
             <button
               type="button"
               onClick={onOpenUpgradeModal}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gradient-to-r from-amber-500/10 to-amber-600/20 hover:from-amber-500/20 hover:to-amber-600/30 border border-amber-500/40 text-xs font-mono font-bold text-amber-300 transition-all cursor-pointer shadow-[0_0_10px_rgba(245,158,11,0.1)]"
-              id="header-pro-active-btn"
+              className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#245BDB] hover:bg-[#1948B8] text-white text-xs font-mono font-bold transition-all cursor-pointer shadow-xs active:scale-[0.98]"
+              id="header-quick-upgrade-btn"
             >
-              <Crown className="w-3.5 h-3.5 text-amber-400" />
-              <span>Pro Active</span>
-            </button>
-          ) : (
-            <button
-              type="button"
-              onClick={onOpenUpgradeModal}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gradient-to-r from-amber-500 via-amber-400 to-yellow-500 hover:brightness-110 text-slate-950 text-xs font-mono font-bold transition-all cursor-pointer shadow-[0_0_15px_rgba(245,158,11,0.25)] border border-amber-300/40"
-              id="header-upgrade-pro-btn"
-            >
-              <Crown className="w-3.5 h-3.5 text-slate-950" />
+              <Crown className="w-3.5 h-3.5 text-amber-300" />
               <span>UPGRADE TO PRO</span>
             </button>
           )}
 
-          {/* History Button */}
+          {/* Quick Reset Callout in Terminal */}
           <button
-            onClick={onOpenHistory}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-800 text-xs font-medium text-slate-300 hover:text-white transition-all cursor-pointer relative"
-            id="history-toggle-btn"
-          >
-            <History className="w-3.5 h-3.5 text-cyan-400" />
-            <span>History</span>
-            {historyCount > 0 && (
-              <span className="ml-0.5 px-1.5 py-0.2 rounded-full text-[10px] font-mono bg-cyan-500/20 text-cyan-300 border border-cyan-500/30">
-                {historyCount}
-              </span>
-            )}
-          </button>
-
-          {/* Reset / New Chart */}
-          <button
+            type="button"
             onClick={onReset}
             disabled={isAnalyzing}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-800 text-xs font-medium text-slate-300 hover:text-white transition-all cursor-pointer disabled:opacity-50"
-            title="Reset terminal"
-            id="reset-terminal-btn"
+            className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white dark:bg-[#1E283D] hover:bg-[#E9EDF5] dark:hover:bg-[#25324E] border border-[#D8DFEA] dark:border-[#243046] text-xs font-medium text-[#182338] dark:text-[#F1F5F9] transition-all cursor-pointer shadow-xs disabled:opacity-40"
+            title="Reset Terminal & New Chart"
+            id="header-quick-reset-btn"
           >
-            <RefreshCw className="w-3.5 h-3.5 text-slate-400" />
-            <span>New Analysis</span>
+            <RefreshCw className={`w-3.5 h-3.5 text-[#64748B] dark:text-[#94A3B8] ${isAnalyzing ? 'animate-spin text-[#245BDB]' : ''}`} />
+            <span>New Chart</span>
           </button>
 
-          {/* Discreet Owner Login Button (When not logged in as Owner) */}
-          {!isOwner && (
+          {/* Master Settings / Menu Dropdown Trigger */}
+          <div className="relative">
             <button
               type="button"
-              onClick={onOpenOwnerModal}
-              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-slate-900/80 hover:bg-purple-950/40 border border-slate-800 hover:border-purple-500/40 text-xs font-mono text-slate-400 hover:text-purple-300 transition-all cursor-pointer"
-              title="Owner / Admin Login"
-              id="header-owner-login-btn"
+              onClick={() => setIsMenuOpen(!isMenuOpen)}
+              className={`flex items-center gap-2 px-3 py-1.5 rounded-xl border transition-all cursor-pointer shadow-xs ${
+                isMenuOpen
+                  ? 'bg-[#E8F0FF] dark:bg-[#245BDB]/20 border-[#245BDB] text-[#245BDB] dark:text-[#3B82F6]'
+                  : 'bg-white dark:bg-[#1E283D] hover:bg-[#E9EDF5] dark:hover:bg-[#25324E] border-[#D8DFEA] dark:border-[#243046] text-[#182338] dark:text-[#F1F5F9]'
+              }`}
+              title="Falcon Settings & Menu"
+              id="header-settings-menu-trigger"
+              aria-expanded={isMenuOpen}
             >
-              <Shield className="w-3.5 h-3.5 text-purple-400/80" />
-              <span>Owner Login</span>
+              {authUser ? (
+                <div className="w-5 h-5 rounded-full bg-[#245BDB] text-white flex items-center justify-center text-[10px] font-bold">
+                  {authUser.email?.[0]?.toUpperCase() || <User className="w-3 h-3" />}
+                </div>
+              ) : (
+                <div className="w-5 h-5 rounded-lg bg-[#E8F0FF] dark:bg-[#245BDB]/30 text-[#245BDB] dark:text-[#3B82F6] flex items-center justify-center">
+                  <Settings className="w-3.5 h-3.5" />
+                </div>
+              )}
+
+              <span className="text-xs font-mono font-semibold max-w-[120px] truncate hidden sm:inline">
+                {authUser ? authUser.email?.split('@')[0] : 'Settings / Menu'}
+              </span>
+
+              <ChevronDown className={`w-3.5 h-3.5 text-[#64748B] dark:text-[#94A3B8] transition-transform duration-200 ${isMenuOpen ? 'rotate-180 text-[#245BDB]' : ''}`} />
             </button>
-          )}
+
+            {/* Dropdown Menu Modal */}
+            {isMenuOpen && (
+              <div
+                className="absolute right-0 top-full mt-2 w-72 sm:w-80 rounded-2xl border border-[#D8DFEA] dark:border-[#243046] bg-white dark:bg-[#111827] shadow-2xl p-3 z-50 animate-in fade-in zoom-in-95 duration-150"
+                style={{ backdropFilter: 'blur(12px)' }}
+              >
+                {/* 1. Session Status Banner */}
+                <div className="p-3 rounded-xl bg-[#F8FAFC] dark:bg-[#161F30] border border-[#D8DFEA] dark:border-[#243046] mb-3">
+                  <div className="flex items-center justify-between gap-2 mb-1.5">
+                    <span className="text-[10px] font-mono uppercase tracking-wider text-[#64748B] dark:text-[#94A3B8]">
+                      Account Session
+                    </span>
+                    {isOwner ? (
+                      <span className="inline-flex items-center gap-1 text-[10px] font-mono font-bold px-2 py-0.5 rounded-md bg-purple-50 dark:bg-purple-950/40 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800">
+                        <Shield className="w-2.5 h-2.5" /> OWNER
+                      </span>
+                    ) : isProUser ? (
+                      <span className="inline-flex items-center gap-1 text-[10px] font-mono font-bold px-2 py-0.5 rounded-md bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-800">
+                        <Crown className="w-2.5 h-2.5" /> PRO ACTIVE
+                      </span>
+                    ) : (
+                      <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-md bg-[#E8F0FF] dark:bg-[#245BDB]/20 text-[#245BDB] dark:text-[#3B82F6] border border-[#245BDB]/30">
+                        FREE PLAN
+                      </span>
+                    )}
+                  </div>
+
+                  <p className="text-xs font-mono font-bold text-[#182338] dark:text-[#F1F5F9] truncate">
+                    {authUser ? authUser.email : 'Guest / Visitor Mode'}
+                  </p>
+
+                  {!isProUser && (
+                    <div className="mt-2 pt-2 border-t border-[#D8DFEA]/60 dark:border-[#243046]/60 flex items-center justify-between text-[11px] font-mono">
+                      <span className="text-[#64748B] dark:text-[#94A3B8]">Lifetime Limit:</span>
+                      <span className={`font-bold ${freeLimitReached ? 'text-amber-600 dark:text-amber-400' : 'text-[#245BDB] dark:text-[#3B82F6]'}`}>
+                        {freeAnalysisCount} / {maxFreeAnalyses} Used {freeLimitReached ? '(Locked)' : ''}
+                      </span>
+                    </div>
+                  )}
+                </div>
+
+                {/* 2. Dark Mode / Light Mode Toggle */}
+                <div className="mb-3 px-1">
+                  <div className="flex items-center justify-between p-2 rounded-xl bg-[#F2F4F8] dark:bg-[#0B0F19] border border-[#D8DFEA] dark:border-[#243046]">
+                    <div className="flex items-center gap-2">
+                      {isDarkMode ? (
+                        <Moon className="w-4 h-4 text-[#3B82F6]" />
+                      ) : (
+                        <Sun className="w-4 h-4 text-amber-500" />
+                      )}
+                      <span className="text-xs font-mono font-semibold text-[#182338] dark:text-[#F1F5F9]">
+                        Theme: {isDarkMode ? 'Dark Mode' : 'Light Mode'}
+                      </span>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={onToggleTheme}
+                      className="flex items-center p-1 rounded-lg bg-white dark:bg-[#1E283D] border border-[#D8DFEA] dark:border-[#243046] shadow-xs cursor-pointer transition-all hover:scale-105 active:scale-95"
+                      title={isDarkMode ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
+                      id="theme-toggle-dropdown-btn"
+                    >
+                      <div className={`p-1 rounded-md transition-all ${!isDarkMode ? 'bg-amber-100 text-amber-700 shadow-xs' : 'text-[#64748B]'}`}>
+                        <Sun className="w-3.5 h-3.5" />
+                      </div>
+                      <div className={`p-1 rounded-md transition-all ${isDarkMode ? 'bg-[#245BDB] text-white shadow-xs' : 'text-[#64748B]'}`}>
+                        <Moon className="w-3.5 h-3.5" />
+                      </div>
+                    </button>
+                  </div>
+                </div>
+
+                {/* 3. Navigation & Actions List */}
+                <div className="space-y-1 mb-3">
+                  {/* Analysis Terminal View */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsMenuOpen(false);
+                      onSelectView?.('terminal');
+                    }}
+                    className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-mono transition-all cursor-pointer ${
+                      currentView === 'terminal'
+                        ? 'bg-[#E8F0FF] dark:bg-[#245BDB]/20 text-[#245BDB] dark:text-[#3B82F6] font-bold'
+                        : 'text-[#182338] dark:text-[#F1F5F9] hover:bg-[#F2F4F8] dark:hover:bg-[#1E283D]'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2.5">
+                      <LineChart className="w-4 h-4 text-[#245BDB] dark:text-[#3B82F6]" />
+                      <span>Analysis Terminal</span>
+                    </div>
+                    {currentView === 'terminal' && <span className="text-[10px] bg-[#245BDB] text-white px-1.5 py-0.2 rounded font-bold">Active</span>}
+                  </button>
+
+                  {/* Landing Overview */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsMenuOpen(false);
+                      onSelectView?.('landing');
+                    }}
+                    className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-mono transition-all cursor-pointer ${
+                      currentView === 'landing'
+                        ? 'bg-[#E8F0FF] dark:bg-[#245BDB]/20 text-[#245BDB] dark:text-[#3B82F6] font-bold'
+                        : 'text-[#182338] dark:text-[#F1F5F9] hover:bg-[#F2F4F8] dark:hover:bg-[#1E283D]'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2.5">
+                      <LayoutDashboard className="w-4 h-4 text-[#64748B] dark:text-[#94A3B8]" />
+                      <span>Overview & Features</span>
+                    </div>
+                    {currentView === 'landing' && <span className="text-[10px] bg-[#245BDB] text-white px-1.5 py-0.2 rounded font-bold">Active</span>}
+                  </button>
+
+                  {/* New Analysis Reset */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsMenuOpen(false);
+                      onReset();
+                    }}
+                    disabled={isAnalyzing}
+                    className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-mono text-[#182338] dark:text-[#F1F5F9] hover:bg-[#F2F4F8] dark:hover:bg-[#1E283D] transition-all cursor-pointer disabled:opacity-40"
+                  >
+                    <RefreshCw className="w-4 h-4 text-[#64748B] dark:text-[#94A3B8]" />
+                    <span>Reset / New Chart</span>
+                  </button>
+
+                  {/* Pro Upgrade Option */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsMenuOpen(false);
+                      onOpenUpgradeModal();
+                    }}
+                    className="w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-mono text-amber-700 dark:text-amber-400 bg-amber-50/70 dark:bg-amber-950/30 hover:bg-amber-100 dark:hover:bg-amber-900/40 border border-amber-200/80 dark:border-amber-800/60 font-bold transition-all cursor-pointer"
+                  >
+                    <div className="flex items-center gap-2.5">
+                      <Crown className="w-4 h-4 text-amber-500" />
+                      <span>{isProUser ? 'Pro Subscription Details' : 'Upgrade to PRO'}</span>
+                    </div>
+                    {!isProUser && <span className="text-[10px] bg-amber-500 text-white px-1.5 py-0.2 rounded">PKR 3,999</span>}
+                  </button>
+
+                  {/* Owner Admin Portal (If authorized) */}
+                  {isOwner && onOpenOwnerPortal && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsMenuOpen(false);
+                        onOpenOwnerPortal();
+                      }}
+                      className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-mono text-purple-700 dark:text-purple-300 bg-purple-50 dark:bg-purple-950/40 hover:bg-purple-100 dark:hover:bg-purple-900/50 border border-purple-200 dark:border-purple-800 font-bold transition-all cursor-pointer"
+                      id="menu-owner-portal-btn"
+                    >
+                      <Shield className="w-4 h-4 text-purple-600 dark:text-purple-400" />
+                      <span>Owner & Admin Portal</span>
+                    </button>
+                  )}
+
+                  {/* User Account Settings */}
+                  {authUser && onOpenUserAccountModal && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsMenuOpen(false);
+                        onOpenUserAccountModal();
+                      }}
+                      className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-mono text-[#182338] dark:text-[#F1F5F9] hover:bg-[#F2F4F8] dark:hover:bg-[#1E283D] transition-all cursor-pointer"
+                      id="menu-my-account-btn"
+                    >
+                      <User className="w-4 h-4 text-[#245BDB] dark:text-[#3B82F6]" />
+                      <span>My Account & Key</span>
+                    </button>
+                  )}
+                </div>
+
+                {/* 4. Authentication Action Area (Prominent RED Buttons as explicitly requested) */}
+                <div className="pt-2 border-t border-[#D8DFEA] dark:border-[#243046]">
+                  {authUser ? (
+                    /* RED LOGOUT BUTTON FOR ACTIVE SESSION */
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsMenuOpen(false);
+                        onLogout?.();
+                      }}
+                      className="w-full flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl bg-red-50 hover:bg-red-100 dark:bg-red-950/40 dark:hover:bg-red-900/60 border border-red-200 dark:border-red-800 text-red-600 dark:text-red-400 font-bold text-xs transition-all cursor-pointer shadow-xs active:scale-[0.99]"
+                      id="menu-logout-btn"
+                    >
+                      <LogOut className="w-4 h-4 text-red-600 dark:text-red-400" />
+                      <span>Logout from Falcon</span>
+                    </button>
+                  ) : (
+                    /* RED CREATE ACCOUNT & LOGIN BUTTONS FOR GUEST */
+                    <div className="flex flex-col gap-2">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsMenuOpen(false);
+                          onOpenRegister?.();
+                        }}
+                        className="w-full flex items-center justify-center gap-2 px-3.5 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 active:scale-[0.98] text-white font-bold text-xs shadow-sm transition-all cursor-pointer"
+                        id="menu-create-account-btn"
+                      >
+                        <UserPlus className="w-4 h-4 text-white" />
+                        <span>Create Free Account</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsMenuOpen(false);
+                          onOpenLogin?.();
+                        }}
+                        className="w-full flex items-center justify-center gap-2 px-3.5 py-2 rounded-xl bg-red-50 hover:bg-red-100 dark:bg-red-950/30 dark:hover:bg-red-900/50 border border-red-300 dark:border-red-800 text-red-600 dark:text-red-400 font-bold text-xs transition-all cursor-pointer"
+                        id="menu-login-btn"
+                      >
+                        <LogIn className="w-4 h-4 text-red-600 dark:text-red-400" />
+                        <span>Login to Falcon</span>
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </header>
   );
 };
-

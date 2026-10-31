@@ -44,62 +44,55 @@ export const VerdictBadge: React.FC<VerdictBadgeProps> = ({
   const getSignalConfig = () => {
     if (isMarketClosed) {
       return {
-        bg: 'bg-amber-950/80 border-amber-500/80 text-amber-200',
-        badgeBg: 'bg-amber-500 text-slate-950 shadow-[0_0_20px_rgba(245,158,11,0.5)]',
-        glow: 'glow-amber',
+        bg: 'bg-amber-50 border-amber-200 text-amber-900',
+        badgeBg: 'bg-amber-500 text-slate-950 shadow-xs font-bold',
         icon: Clock,
         label: 'NO LIVE TRADE — MARKET CLOSED',
       };
     }
     if (isStrongBuy) {
       return {
-        bg: 'bg-emerald-950/80 border-emerald-500/80 text-emerald-300',
-        badgeBg: 'bg-emerald-500 text-slate-950 shadow-[0_0_20px_rgba(0,240,160,0.5)]',
-        glow: 'glow-emerald',
+        bg: 'bg-emerald-50 border-emerald-200 text-emerald-900',
+        badgeBg: 'bg-[#16A36A] text-white shadow-xs font-bold',
         icon: TrendingUp,
         label: 'STRONG BUY / LONG',
       };
     }
     if (isBuy) {
       return {
-        bg: 'bg-emerald-950/60 border-emerald-500/60 text-emerald-300',
-        badgeBg: 'bg-emerald-400 text-slate-950 shadow-[0_0_15px_rgba(16,185,129,0.4)]',
-        glow: 'glow-emerald',
+        bg: 'bg-emerald-50 border-emerald-200 text-emerald-900',
+        badgeBg: 'bg-[#16A36A] text-white shadow-xs font-bold',
         icon: TrendingUp,
         label: 'BUY / LONG SETUP',
       };
     }
     if (isStrongSell) {
       return {
-        bg: 'bg-rose-950/80 border-rose-500/80 text-rose-300',
-        badgeBg: 'bg-rose-500 text-white shadow-[0_0_20px_rgba(244,63,94,0.5)]',
-        glow: 'glow-rose',
+        bg: 'bg-rose-50 border-rose-200 text-rose-900',
+        badgeBg: 'bg-[#DC4655] text-white shadow-xs font-bold',
         icon: TrendingDown,
         label: 'STRONG SELL / SHORT',
       };
     }
     if (isSell) {
       return {
-        bg: 'bg-rose-950/60 border-rose-500/60 text-rose-300',
-        badgeBg: 'bg-rose-400 text-slate-950 shadow-[0_0_15px_rgba(244,63,94,0.4)]',
-        glow: 'glow-rose',
+        bg: 'bg-rose-50 border-rose-200 text-rose-900',
+        badgeBg: 'bg-[#DC4655] text-white shadow-xs font-bold',
         icon: TrendingDown,
         label: 'SELL / SHORT SETUP',
       };
     }
     if (sigUpper.includes('INSUFFICIENT') || sigUpper.includes('NO RELIABLE') || sigUpper.includes('CLEARER')) {
       return {
-        bg: 'bg-amber-950/70 border-amber-500/70 text-amber-200',
-        badgeBg: 'bg-amber-500 text-slate-950 shadow-[0_0_15px_rgba(245,158,11,0.5)]',
-        glow: 'glow-amber',
+        bg: 'bg-amber-50 border-amber-200 text-amber-900',
+        badgeBg: 'bg-amber-500 text-slate-950 shadow-xs font-bold',
         icon: AlertCircle,
         label: 'NO RELIABLE SETUP — CLEARER CHART NEEDED',
       };
     }
     return {
-      bg: 'bg-amber-950/60 border-amber-500/60 text-amber-300',
-      badgeBg: 'bg-amber-400 text-slate-950 shadow-[0_0_15px_rgba(245,158,11,0.4)]',
-      glow: 'glow-amber',
+      bg: 'bg-amber-50 border-amber-200 text-amber-900',
+      badgeBg: 'bg-amber-500 text-slate-950 shadow-xs font-bold',
       icon: Minus,
       label: 'NO TRADE / WAIT',
     };
@@ -111,32 +104,29 @@ export const VerdictBadge: React.FC<VerdictBadgeProps> = ({
   const getTrendBadge = (trend: MarketTrend) => {
     switch (trend) {
       case 'BULLISH':
-        return { text: 'BULLISH TREND', color: 'text-emerald-400 bg-emerald-500/10 border-emerald-500/30' };
+        return { text: 'BULLISH TREND', color: 'text-[#15803D] bg-[#F0FDF4] border-[#BBF7D0]' };
       case 'BEARISH':
-        return { text: 'BEARISH TREND', color: 'text-rose-400 bg-rose-500/10 border-rose-500/30' };
+        return { text: 'BEARISH TREND', color: 'text-[#BE123C] bg-[#FFF1F2] border-[#FECDD3]' };
       case 'REVERSAL_BULLISH':
-        return { text: 'BULLISH REVERSAL', color: 'text-teal-300 bg-teal-500/10 border-teal-500/30' };
+        return { text: 'BULLISH REVERSAL', color: 'text-[#1D4ED8] bg-[#EFF6FF] border-[#BFDBFE]' };
       case 'REVERSAL_BEARISH':
-        return { text: 'BEARISH REVERSAL', color: 'text-orange-400 bg-orange-500/10 border-orange-500/30' };
+        return { text: 'BEARISH REVERSAL', color: 'text-[#C2410C] bg-[#FFF7ED] border-[#FED7AA]' };
       default:
-        return { text: 'NEUTRAL / RANGING', color: 'text-amber-400 bg-amber-500/10 border-amber-500/30' };
+        return { text: 'NEUTRAL / RANGING', color: 'text-[#A16207] bg-[#FEFCE8] border-[#FEF08A]' };
     }
   };
 
   const trendInfo = getTrendBadge(marketTrend);
 
   return (
-    <div className={`rounded-xl border p-5 bg-[#0D121F] shadow-xl relative overflow-hidden ${config.glow}`}>
-      {/* Background Accent Grid */}
-      <div className="absolute top-0 right-0 w-64 h-32 bg-gradient-to-bl from-cyan-500/5 via-transparent to-transparent pointer-events-none" />
-
+    <div className="rounded-xl border border-[#D8DFEA] p-5 bg-white shadow-card relative overflow-hidden">
       {/* Header bar: Asset & Trend info */}
-      <div className="flex flex-wrap items-center justify-between gap-2 pb-3.5 border-b border-slate-800/80 mb-4">
+      <div className="flex flex-wrap items-center justify-between gap-2 pb-3.5 border-b border-[#D8DFEA] mb-4">
         <div className="flex items-center gap-2">
-          <span className="text-sm font-bold font-mono text-white tracking-wider">
+          <span className="text-sm font-bold font-mono text-[#182338] tracking-wider">
             {asset}
           </span>
-          <span className="text-xs font-mono px-2 py-0.5 rounded bg-slate-800 text-slate-300 border border-slate-700">
+          <span className="text-xs font-mono px-2 py-0.5 rounded bg-[#F2F4F8] text-[#182338] border border-[#D8DFEA]">
             {timeframe}
           </span>
           <span className={`text-[11px] font-mono font-bold px-2 py-0.5 rounded border ${trendInfo.color}`}>
@@ -145,12 +135,12 @@ export const VerdictBadge: React.FC<VerdictBadgeProps> = ({
         </div>
 
         {/* Confidence Gauge Badge */}
-        <div className="flex items-center gap-2 bg-slate-900/90 border border-slate-800 px-3 py-1 rounded-lg">
-          <ShieldCheck className="w-3.5 h-3.5 text-cyan-400" />
-          <span className="text-xs font-mono text-slate-400">Confidence:</span>
+        <div className="flex items-center gap-2 bg-[#F2F4F8] border border-[#D8DFEA] px-3 py-1 rounded-lg">
+          <ShieldCheck className="w-3.5 h-3.5 text-[#245BDB]" />
+          <span className="text-xs font-mono text-[#64748B]">Confidence:</span>
           <span
             className={`text-xs font-mono font-bold ${
-              confidence >= 80 ? 'text-emerald-400' : confidence >= 60 ? 'text-amber-400' : 'text-slate-300'
+              confidence >= 80 ? 'text-[#16A36A]' : confidence >= 60 ? 'text-amber-400' : 'text-[#64748B]'
             }`}
           >
             {confidence}%
@@ -162,26 +152,26 @@ export const VerdictBadge: React.FC<VerdictBadgeProps> = ({
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="flex items-center gap-4">
           <div
-            className={`px-5 py-3 rounded-xl font-mono font-black text-base sm:text-lg tracking-wider flex items-center gap-2.5 ${config.badgeBg}`}
+            className={`px-5 py-3 rounded-xl font-mono font-bold text-base sm:text-lg tracking-wider flex items-center gap-2.5 ${config.badgeBg}`}
           >
             <Icon className="w-6 h-6 stroke-[2.5]" />
             <span>{config.label}</span>
           </div>
 
           <div>
-            <div className="text-[11px] font-mono text-slate-400 uppercase tracking-wide">
+            <div className="text-[11px] font-mono text-[#64748B] uppercase tracking-wide">
               Market Trend Strength
             </div>
             <div className="flex items-center gap-2 mt-1">
-              <div className="w-28 sm:w-36 h-2 rounded-full bg-slate-800 overflow-hidden border border-slate-700/60">
+              <div className="w-28 sm:w-36 h-2 rounded-full bg-[#E9EDF5] overflow-hidden border border-[#D8DFEA]">
                 <div
                   className={`h-full rounded-full ${
-                    isBuy ? 'bg-[#00F0A0]' : isSell ? 'bg-rose-500' : 'bg-amber-400'
+                    isBuy ? 'bg-[#16A36A]' : isSell ? 'bg-[#DC4655]' : 'bg-[#D99718]'
                   }`}
                   style={{ width: `${Math.min(100, Math.max(10, trendStrength))}%` }}
                 />
               </div>
-              <span className="text-xs font-mono font-bold text-slate-200">
+              <span className="text-xs font-mono font-bold text-[#182338]">
                 {trendStrength}%
               </span>
             </div>
@@ -189,23 +179,23 @@ export const VerdictBadge: React.FC<VerdictBadgeProps> = ({
         </div>
 
         {/* Timeframe context pill */}
-        <div className="bg-slate-900/90 border border-slate-800/80 rounded-lg p-2.5 max-w-sm">
-          <div className="flex items-center gap-1.5 text-[11px] font-mono text-slate-400 mb-1">
-            <Clock className="w-3 h-3 text-cyan-400" />
+        <div className="bg-[#F2F4F8] border border-[#D8DFEA] rounded-lg p-2.5 max-w-sm">
+          <div className="flex items-center gap-1.5 text-[11px] font-mono text-[#64748B] mb-1">
+            <Clock className="w-3 h-3 text-[#245BDB]" />
             <span>Execution Context:</span>
           </div>
-          <p className="text-xs text-slate-300 line-clamp-2">
+          <p className="text-xs text-[#182338] line-clamp-2">
             {verdict.timeframeContext}
           </p>
         </div>
       </div>
 
       {/* Summary Rationale */}
-      <div className="mt-4 pt-3.5 border-t border-slate-800/60 bg-slate-900/40 rounded-lg p-3 border border-slate-800/40">
-        <div className="flex items-center gap-1.5 text-xs font-mono font-bold text-cyan-400 mb-1">
-          <Sparkles className="w-3.5 h-3.5" /> Executive Trade Thesis
+      <div className="mt-4 pt-3.5 border-t border-[#D8DFEA] bg-[#E9EDF5] rounded-lg p-3 border border-[#D8DFEA]">
+        <div className="flex items-center gap-1.5 text-xs font-mono font-bold text-[#245BDB] mb-1">
+          <Sparkles className="w-3.5 h-3.5 text-[#D99718]" /> Executive Trade Thesis
         </div>
-        <p className="text-xs text-slate-300 leading-relaxed">
+        <p className="text-xs text-[#182338] leading-relaxed">
           {verdict.summary}
         </p>
       </div>

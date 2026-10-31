@@ -46,17 +46,17 @@ export const PositionCalculator: React.FC<PositionCalculatorProps> = ({
   const cleanAssetSymbol = (asset || 'BTC/USD').split('/')[0] || 'UNITS';
 
   return (
-    <div className="bg-[#0D121F] border border-slate-800 rounded-xl p-5 shadow-xl space-y-4">
+    <div className="bg-white border border-[#D8DFEA] rounded-xl p-5 shadow-card space-y-4">
       {/* Header */}
-      <div className="flex items-center justify-between pb-3 border-b border-slate-800/80">
+      <div className="flex items-center justify-between pb-3 border-b border-[#D8DFEA]">
         <div className="flex items-center gap-2">
-          <Calculator className="w-4 h-4 text-emerald-400" />
-          <h3 className="text-xs font-mono font-bold uppercase tracking-wider text-slate-200">
+          <Calculator className="w-4 h-4 text-[#245BDB]" />
+          <h3 className="text-xs font-mono font-bold uppercase tracking-wider text-[#182338]">
             Prop Risk & Position Sizing Engine
           </h3>
         </div>
-        <span className="text-[11px] font-mono text-slate-400">
-          Formula: <strong className="text-white">Position = Risk $ / SL %</strong>
+        <span className="text-[11px] font-mono text-[#64748B]">
+          Formula: <strong className="text-[#182338]">Position = Risk $ / SL %</strong>
         </span>
       </div>
 
@@ -64,23 +64,23 @@ export const PositionCalculator: React.FC<PositionCalculatorProps> = ({
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         {/* Account Size */}
         <div>
-          <label className="block text-[11px] font-mono text-slate-400 mb-1">
+          <label className="block text-[11px] font-mono text-[#64748B] mb-1">
             Account Balance ($)
           </label>
           <div className="relative">
-            <DollarSign className="w-3.5 h-3.5 text-slate-500 absolute left-3 top-2.5" />
+            <DollarSign className="w-3.5 h-3.5 text-[#64748B] absolute left-3 top-2.5" />
             <input
               type="number"
               value={accountBalance}
               onChange={(e) => setAccountBalance(Math.max(1, Number(e.target.value)))}
-              className="w-full bg-slate-900 border border-slate-700/80 focus:border-cyan-500 rounded-lg pl-8 pr-3 py-1.5 text-xs font-mono text-white outline-none"
+              className="w-full bg-white border border-[#D8DFEA] focus:border-[#245BDB] rounded-lg pl-8 pr-3 py-1.5 text-xs font-mono text-[#182338] outline-none"
             />
           </div>
         </div>
 
         {/* Risk Percentage */}
         <div>
-          <label className="block text-[11px] font-mono text-slate-400 mb-1">
+          <label className="block text-[11px] font-mono text-[#64748B] mb-1">
             Max Risk per Trade (%)
           </label>
           <div className="flex gap-1.5">
@@ -90,8 +90,8 @@ export const PositionCalculator: React.FC<PositionCalculatorProps> = ({
                 onClick={() => setRiskPercent(p)}
                 className={`flex-1 py-1.5 rounded-lg text-xs font-mono border transition-all cursor-pointer ${
                   riskPercent === p
-                    ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/50 font-bold'
-                    : 'bg-slate-900 border-slate-800 text-slate-400 hover:text-white'
+                    ? 'bg-[#245BDB] text-white border-[#245BDB] font-bold shadow-xs'
+                    : 'bg-[#F2F4F8] border-[#D8DFEA] text-[#64748B] hover:text-[#182338]'
                 }`}
               >
                 {p}%
@@ -102,7 +102,7 @@ export const PositionCalculator: React.FC<PositionCalculatorProps> = ({
 
         {/* Leverage / Multiplier */}
         <div>
-          <label className="block text-[11px] font-mono text-slate-400 mb-1">
+          <label className="block text-[11px] font-mono text-[#64748B] mb-1">
             Account Leverage
           </label>
           <div className="flex gap-1.5">
@@ -112,8 +112,8 @@ export const PositionCalculator: React.FC<PositionCalculatorProps> = ({
                 onClick={() => setLeverage(lev)}
                 className={`flex-1 py-1.5 rounded-lg text-xs font-mono border transition-all cursor-pointer ${
                   leverage === lev
-                    ? 'bg-cyan-500/20 text-cyan-300 border-cyan-500/50 font-bold'
-                    : 'bg-slate-900 border-slate-800 text-slate-400 hover:text-white'
+                    ? 'bg-[#245BDB] text-white border-[#245BDB] font-bold shadow-xs'
+                    : 'bg-[#F2F4F8] border-[#D8DFEA] text-[#64748B] hover:text-[#182338]'
                 }`}
               >
                 {lev}x
@@ -125,50 +125,50 @@ export const PositionCalculator: React.FC<PositionCalculatorProps> = ({
 
       {/* Output Results Calculation Matrix */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 pt-1">
-        <div className="bg-slate-900/90 border border-slate-800 rounded-lg p-3">
-          <div className="text-[10px] font-mono text-rose-400 uppercase mb-0.5 flex items-center gap-1">
+        <div className="bg-[#F2F4F8] border border-[#D8DFEA] rounded-lg p-3 shadow-xs">
+          <div className="text-[10px] font-mono text-[#DC4655] uppercase mb-0.5 flex items-center gap-1">
             <Shield className="w-3 h-3" /> Max Risk ($)
           </div>
-          <div className="text-base font-bold font-mono text-rose-300">
+          <div className="text-base font-bold font-mono text-[#DC4655]">
             ${dollarRisk.toFixed(2)}
           </div>
-          <div className="text-[10px] text-slate-500 font-mono">
+          <div className="text-[10px] text-[#64748B] font-mono">
             {(slDistancePercent * 100).toFixed(2)}% to SL
           </div>
         </div>
 
-        <div className="bg-slate-900/90 border border-slate-800 rounded-lg p-3">
-          <div className="text-[10px] font-mono text-cyan-400 uppercase mb-0.5">
+        <div className="bg-[#F2F4F8] border border-[#D8DFEA] rounded-lg p-3 shadow-xs">
+          <div className="text-[10px] font-mono text-[#245BDB] uppercase mb-0.5">
             Recommended Size ($)
           </div>
-          <div className="text-base font-bold font-mono text-cyan-300">
+          <div className="text-base font-bold font-mono text-[#245BDB]">
             ${positionSizeUsd.toLocaleString(undefined, { maximumFractionDigits: 0 })}
           </div>
-          <div className="text-[10px] text-slate-500 font-mono">
+          <div className="text-[10px] text-[#64748B] font-mono">
             {positionUnits.toFixed(4)} {cleanAssetSymbol}
           </div>
         </div>
 
-        <div className="bg-slate-900/90 border border-slate-800 rounded-lg p-3">
-          <div className="text-[10px] font-mono text-emerald-400 uppercase mb-0.5 flex items-center gap-1">
+        <div className="bg-[#F2F4F8] border border-[#D8DFEA] rounded-lg p-3 shadow-xs">
+          <div className="text-[10px] font-mono text-[#16A36A] uppercase mb-0.5 flex items-center gap-1">
             <ArrowUpRight className="w-3 h-3" /> TP1 Profit ($)
           </div>
-          <div className="text-base font-bold font-mono text-emerald-300">
+          <div className="text-base font-bold font-mono text-[#16A36A]">
             +${profitAtTp1.toFixed(2)}
           </div>
-          <div className="text-[10px] text-slate-500 font-mono">
+          <div className="text-[10px] text-[#64748B] font-mono">
             +{(tp1GainPercent * 100).toFixed(1)}% Return
           </div>
         </div>
 
-        <div className="bg-slate-900/90 border border-slate-800 rounded-lg p-3">
-          <div className="text-[10px] font-mono text-emerald-400 uppercase mb-0.5 flex items-center gap-1">
+        <div className="bg-[#F2F4F8] border border-[#D8DFEA] rounded-lg p-3 shadow-xs">
+          <div className="text-[10px] font-mono text-[#16A36A] uppercase mb-0.5 flex items-center gap-1">
             <ArrowUpRight className="w-3 h-3" /> TP2 Profit ($)
           </div>
-          <div className="text-base font-bold font-mono text-emerald-300">
+          <div className="text-base font-bold font-mono text-[#16A36A]">
             +${profitAtTp2.toFixed(2)}
           </div>
-          <div className="text-[10px] text-slate-500 font-mono">
+          <div className="text-[10px] text-[#64748B] font-mono">
             +{(tp2GainPercent * 100).toFixed(1)}% Return
           </div>
         </div>

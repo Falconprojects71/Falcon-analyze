@@ -42,7 +42,8 @@ export interface StopLoss {
 }
 
 export interface TakeProfit {
-  price: number;
+  price?: number;
+  status?: 'CONFIRMED' | 'UNAVAILABLE';
   percentageGain?: number;
   riskRewardRatio?: number;
   rrr?: string;
@@ -74,6 +75,33 @@ export interface TradePlanExecution {
   riskManagementTips: string;
 }
 
+export interface TimeframeLevel {
+  price?: number | string;
+  strength?: string;
+  rationale?: string;
+}
+
+export interface MultiTimeframeChartItem {
+  timeframe?: string;
+  role?: string;
+  observations?: string;
+  trend?: string;
+  keyLevels?: string;
+  setupTrigger?: string;
+  support1?: TimeframeLevel;
+  resistance1?: TimeframeLevel;
+}
+
+export interface MultiTimeframeAnalysis {
+  chart1?: MultiTimeframeChartItem;
+  chart2?: MultiTimeframeChartItem;
+  chart3?: MultiTimeframeChartItem;
+  combinedMajorSupport?: TimeframeLevel;
+  combinedMajorResistance?: TimeframeLevel;
+  confluenceSummary?: string;
+  conflictResolution?: string;
+}
+
 export interface ChartAnalysisResult {
   id: string;
   timestamp: number;
@@ -93,68 +121,6 @@ export interface ChartAnalysisResult {
   entryZone: EntryZone;
   supportLevels: PriceLevel[];
   resistanceLevels: PriceLevel[];
-
-multiTimeframeSupport?: {
-    support15M?: {
-      price?: number | null;
-      strength?: string;
-      rationale?: string;
-    };
-    resistance15M?: {
-      price?: number | null;
-      strength?: string;
-      rationale?: string;
-    };
-
-    support1H?: {
-      price?: number | null;
-      strength?: string;
-      rationale?: string;
-    };
-    resistance1H?: {
-      price?: number | null;
-      strength?: string;
-      rationale?: string;
-    };
-
-    support4H?: {
-      price?: number | null;
-      strength?: string;
-      rationale?: string;
-    };
-    resistance4H?: {
-      price?: number | null;
-      strength?: string;
-      rationale?: string;
-    };
-
-    combinedMajorSupport?: {
-      price?: number | null;
-      strength?: string;
-      rationale?: string;
-    };
-    combinedMajorResistance?: {
-      price?: number | null;
-      strength?: string;
-      rationale?: string;
-    };
-  };
-    support1H?: {
-      price?: number | null;
-      strength?: string;
-      rationale?: string;
-    };
-    support4H?: {
-      price?: number | null;
-      strength?: string;
-      rationale?: string;
-    };
-    combinedMajorSupport?: {
-      price?: number | null;
-      strength?: string;
-      rationale?: string;
-    };
-  };
   stopLoss: StopLoss;
   takeProfit1: TakeProfit;
   takeProfit2: TakeProfit;
@@ -168,28 +134,7 @@ multiTimeframeSupport?: {
   technicalIndicators: TechnicalIndicator[];
   candlestickPatterns: string[];
   orderFlowContext?: OrderFlowContext;
-  multiTimeframeAnalysis?: {
-    chart1?: {
-      timeframe?: string;
-      role?: string;
-      observations?: string;
-      trend?: string;
-    };
-    chart2?: {
-      timeframe?: string;
-      role?: string;
-      observations?: string;
-      keyLevels?: string;
-    };
-    chart3?: {
-      timeframe?: string;
-      role?: string;
-      observations?: string;
-      setupTrigger?: string;
-    };
-    confluenceSummary?: string;
-    conflictResolution?: string;
-  };
+  multiTimeframeAnalysis?: MultiTimeframeAnalysis;
   tradePlanExecution: TradePlanExecution;
   detailedExplanation: string;
   imagePreviewUrl?: string;
@@ -266,44 +211,43 @@ export interface OwnerSessionState {
   user: OwnerUser | null;
 }
 
-export type TestProStatus = 'ACTIVE' | 'EXPIRED' | 'REVOKED';
-
-export interface TestProRecord {
+export interface UserSubscription {
   id: string;
-  userIdentifier: string; // Email or unique User ID
-  accessType: 'TEST';
-  status: TestProStatus;
-  grantedBy: string;
-  durationDays: number;
-  durationLabel: string;
+  userId: string;
+  plan: 'monthly' | 'yearly';
+  currency: 'USD' | 'PKR';
+  reference: string;
+  licenseKey: string;
+  status: 'ACTIVE' | 'EXPIRED' | 'CANCELLED';
   createdAt: string;
   expiresAt: string;
-  remainingTime?: string;
-  revokedAt?: string;
-  notes?: string;
-}
-
-export interface TestProDetails {
-  userIdentifier: string;
-  accessType: 'TEST';
-  status: TestProStatus;
-  durationDays: number;
-  durationLabel: string;
-  createdAt: string;
-  expiresAt: string;
-  remainingTime: string;
 }
 
 export interface AuthUser {
-  id: string; // Permanent Unique User ID (e.g. user-7KFuVJ)
+  id: string; // Permanent Unique User ID (e.g. usr_a1b2c3d4)
   email: string;
   createdAt: string;
   freeAnalysisCount: number;
+  freeLimitReached?: boolean;
+  isPro?: boolean;
+  licenseKey?: string | null;
+  subscription?: UserSubscription | null;
 }
+
 
 export interface AuthSessionState {
   isAuthenticated: boolean;
   user: AuthUser | null;
   token: string | null;
+}
+
+export interface PaymentStatusResponse {
+  verified?: boolean;
+  cancelled?: boolean;
+  licenseKey?: string;
+  plan?: string;
+  currency?: string;
+  status?: string;
+  error?: string;
 }
 

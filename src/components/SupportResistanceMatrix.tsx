@@ -16,37 +16,37 @@ export const SupportResistanceMatrix: React.FC<SupportResistanceMatrixProps> = (
   const getStrengthBadge = (strength: string) => {
     switch (strength) {
       case 'MAJOR':
-        return 'bg-purple-500/20 text-purple-300 border-purple-500/40 font-bold';
+        return 'bg-[#E8F0FF] text-[#245BDB] border-[#245BDB]/40 font-bold';
       case 'INTERMEDIATE':
-        return 'bg-blue-500/20 text-blue-300 border-blue-500/40';
+        return 'bg-[#E9EDF5] text-[#182338] border-[#D8DFEA]';
       default:
-        return 'bg-slate-700/40 text-slate-400 border-slate-600/40';
+        return 'bg-[#F2F4F8] text-[#64748B] border-[#D8DFEA]';
     }
   };
 
   return (
-    <div className="bg-[#0D121F] border border-slate-800 rounded-xl p-5 shadow-xl">
+    <div className="bg-white border border-[#D8DFEA] rounded-xl p-5 shadow-card">
       {/* Header */}
-      <div className="flex items-center justify-between pb-3.5 border-b border-slate-800/80 mb-4">
+      <div className="flex items-center justify-between pb-3.5 border-b border-[#D8DFEA] mb-4">
         <div className="flex items-center gap-2">
-          <Shield className="w-4 h-4 text-amber-400" />
-          <h3 className="text-xs font-mono font-bold uppercase tracking-wider text-slate-200">
+          <Shield className="w-4 h-4 text-[#D99718]" />
+          <h3 className="text-xs font-mono font-bold uppercase tracking-wider text-[#182338]">
             Support & Resistance Confluence Matrix
           </h3>
         </div>
-        <span className="text-[11px] font-mono text-slate-400">
-          Anchor: <strong className="text-white">${currentPrice.toLocaleString()}</strong>
+        <span className="text-[11px] font-mono text-[#64748B]">
+          Anchor: <strong className="text-[#182338]">${currentPrice.toLocaleString()}</strong>
         </span>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
         {/* RESISTANCE LEVELS (Above price) */}
         <div className="space-y-2.5">
-          <div className="flex items-center justify-between text-xs font-mono font-bold text-rose-400 pb-1 border-b border-rose-500/20">
+          <div className="flex items-center justify-between text-xs font-mono font-bold text-[#DC4655] pb-1 border-b border-[#DC4655]/20">
             <span className="flex items-center gap-1.5">
               <TrendingDown className="w-3.5 h-3.5" /> Resistance Levels (Supply Zones)
             </span>
-            <span className="text-[10px] text-slate-500">{resistances.length} Detected</span>
+            <span className="text-[10px] text-[#64748B]">{resistances.length} Detected</span>
           </div>
 
           <div className="space-y-2">
@@ -55,25 +55,25 @@ export const SupportResistanceMatrix: React.FC<SupportResistanceMatrixProps> = (
               return (
                 <div
                   key={idx}
-                  className="bg-slate-900/80 border border-slate-800 hover:border-rose-500/40 rounded-lg p-3 transition-all"
+                  className="bg-[#F2F4F8] border border-[#D8DFEA] hover:border-[#DC4655]/40 rounded-lg p-3 transition-all shadow-xs"
                 >
                   <div className="flex items-center justify-between mb-1">
                     <div className="flex items-center gap-2">
-                      <span className="text-sm font-mono font-bold text-white">
+                      <span className="text-sm font-mono font-bold text-[#182338]">
                         ${lvl.price.toLocaleString()}
                       </span>
                       <span className={`text-[10px] font-mono px-1.5 py-0.2 rounded border ${getStrengthBadge(lvl.strength)}`}>
                         {lvl.strength}
                       </span>
                     </div>
-                    <span className="text-xs font-mono text-rose-400 flex items-center gap-0.5">
+                    <span className="text-xs font-mono text-[#DC4655] flex items-center gap-0.5 font-bold">
                       <ArrowUp className="w-3 h-3" /> +{diffPercent}%
                     </span>
                   </div>
-                  <div className="text-[11px] font-mono font-medium text-slate-300 mb-0.5">
+                  <div className="text-[11px] font-mono font-medium text-[#182338] mb-0.5">
                     {lvl.label}
                   </div>
-                  <div className="text-[10px] text-slate-400 leading-snug">
+                  <div className="text-[10px] text-[#64748B] leading-snug">
                     {lvl.note}
                   </div>
                 </div>
@@ -84,11 +84,11 @@ export const SupportResistanceMatrix: React.FC<SupportResistanceMatrixProps> = (
 
         {/* SUPPORT LEVELS (Below price) */}
         <div className="space-y-2.5">
-          <div className="flex items-center justify-between text-xs font-mono font-bold text-emerald-400 pb-1 border-b border-emerald-500/20">
+          <div className="flex items-center justify-between text-xs font-mono font-bold text-[#16A36A] pb-1 border-b border-[#16A36A]/20">
             <span className="flex items-center gap-1.5">
               <TrendingUp className="w-3.5 h-3.5" /> Support Levels (Demand Zones)
             </span>
-            <span className="text-[10px] text-slate-500">{supports.length} Detected</span>
+            <span className="text-[10px] text-[#64748B]">{supports.length} Detected</span>
           </div>
 
           <div className="space-y-2">
@@ -97,25 +97,25 @@ export const SupportResistanceMatrix: React.FC<SupportResistanceMatrixProps> = (
               return (
                 <div
                   key={idx}
-                  className="bg-slate-900/80 border border-slate-800 hover:border-emerald-500/40 rounded-lg p-3 transition-all"
+                  className="bg-[#F2F4F8] border border-[#D8DFEA] hover:border-[#16A36A]/40 rounded-lg p-3 transition-all shadow-xs"
                 >
                   <div className="flex items-center justify-between mb-1">
                     <div className="flex items-center gap-2">
-                      <span className="text-sm font-mono font-bold text-white">
+                      <span className="text-sm font-mono font-bold text-[#182338]">
                         ${lvl.price.toLocaleString()}
                       </span>
                       <span className={`text-[10px] font-mono px-1.5 py-0.2 rounded border ${getStrengthBadge(lvl.strength)}`}>
                         {lvl.strength}
                       </span>
                     </div>
-                    <span className="text-xs font-mono text-emerald-400 flex items-center gap-0.5">
+                    <span className="text-xs font-mono text-[#16A36A] flex items-center gap-0.5 font-bold">
                       <ArrowDown className="w-3 h-3" /> -{diffPercent}%
                     </span>
                   </div>
-                  <div className="text-[11px] font-mono font-medium text-slate-300 mb-0.5">
+                  <div className="text-[11px] font-mono font-medium text-[#182338] mb-0.5">
                     {lvl.label}
                   </div>
-                  <div className="text-[10px] text-slate-400 leading-snug">
+                  <div className="text-[10px] text-[#64748B] leading-snug">
                     {lvl.note}
                   </div>
                 </div>

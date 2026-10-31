@@ -4,7 +4,10 @@
  */
 
 const FINGERPRINT_KEY = 'falcon_device_fingerprint_v1';
-const COOKIE_NAME = 'falcon_device_id';
+const FINGERPRINT_COOKIE = 'falcon_device_fp_v1';
+const CLIENT_ID_KEY = 'falcon_analyze_client_id_v1';
+const CLIENT_ID_COOKIE = 'falcon_client_id_v1';
+const LEGACY_COOKIE_NAME = 'falcon_device_id';
 
 function simpleHash(str: string): string {
   let hash = 0;
@@ -46,10 +49,10 @@ export function getDeviceFingerprint(): string {
     const raw = components.join('###');
     const hash = `fp_${simpleHash(raw)}`;
 
-    // Store in cookie and localStorage as backup identifiers
-    const existingCookie = getCookie(COOKIE_NAME);
+    // Store in fingerprint cookie and localStorage as backup identifiers
+    const existingCookie = getCookie(FINGERPRINT_COOKIE);
     if (!existingCookie) {
-      setCookie(COOKIE_NAME, hash, 365);
+      setCookie(FINGERPRINT_COOKIE, hash, 365);
     }
 
     try {
@@ -64,23 +67,31 @@ export function getDeviceFingerprint(): string {
 
 export function getPersistentDeviceId(): string {
   try {
-    // 1. Try Cookie
-    const cookieId = getCookie(COOKIE_NAME);
-    if (cookieId && cookieId.trim().length > 0) {
+    // 1. Try Primary Client ID Cookie
+    const cookieId = getCookie(CLIENT_ID_COOKIE);
+    if (cookieId && cookieId.trim().length >= 8 && !cookieId.startsWith('fp_')) {
       return cookieId.trim();
     }
 
     // 2. Try LocalStorage
-    let lsId = localStorage.getItem('falcon_analyze_client_id_v1');
-    if (lsId && lsId.trim().length > 0) {
-      setCookie(COOKIE_NAME, lsId.trim(), 365);
+    let lsId = localStorage.getItem(CLIENT_ID_KEY);
+    if (lsId && lsId.trim().length >= 8 && !lsId.startsWith('fp_')) {
+      setCookie(CLIENT_ID_COOKIE, lsId.trim(), 365);
       return lsId.trim();
     }
 
-    // 3. Generate New Stable ID
+    // 3. Try Legacy Cookie (if not a raw fingerprint hash)
+    const legacyCookie = getCookie(LEGACY_COOKIE_NAME);
+    if (legacyCookie && legacyCookie.trim().length >= 8 && !legacyCookie.startsWith('fp_')) {
+      setCookie(CLIENT_ID_COOKIE, legacyCookie.trim(), 365);
+      localStorage.setItem(CLIENT_ID_KEY, legacyCookie.trim());
+      return legacyCookie.trim();
+    }
+
+    // 4. Generate New Stable Client ID
     const newId = `client_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
-    localStorage.setItem('falcon_analyze_client_id_v1', newId);
-    setCookie(COOKIE_NAME, newId, 365);
+    localStorage.setItem(CLIENT_ID_KEY, newId);
+    setCookie(CLIENT_ID_COOKIE, newId, 365);
     return newId;
   } catch (_) {
     return 'client_default_session';
@@ -93,7 +104,14 @@ const AUTH_TOKEN_KEY = 'falcon_user_auth_token_v1';
 
 export function getAuthToken(): string | null {
   try {
-    return localStorage.getItem(AUTH_TOKEN_KEY);
+    const lsToken = localStorage.getItem(AUTH_TOKEN_KEY);
+    if (lsToken) return lsToken;
+    const cookieToken = getCookie('falcon_auth_token') || getCookie(AUTH_TOKEN_KEY);
+    if (cookieToken) {
+      localStorage.setItem(AUTH_TOKEN_KEY, cookieToken);
+      return cookieToken;
+    }
+    return null;
   } catch (_) {
     return null;
   }
@@ -104,9 +122,11 @@ export function setAuthToken(token: string | null): void {
     if (token) {
       localStorage.setItem(AUTH_TOKEN_KEY, token);
       setCookie(AUTH_TOKEN_KEY, token, 30);
+      setCookie('falcon_auth_token', token, 30);
     } else {
       localStorage.removeItem(AUTH_TOKEN_KEY);
       setCookie(AUTH_TOKEN_KEY, '', -1);
+      setCookie('falcon_auth_token', '', -1);
     }
   } catch (_) {}
 }
@@ -144,9 +164,13 @@ export function getStoredUserIdentifier(): string {
     if (email && email.trim().length > 0) {
       return email.trim();
     }
-    return 'milyas1071@gmail.com';
+    const uid = localStorage.getItem(USER_ID_KEY);
+    if (uid && uid.trim().length > 0) {
+      return uid.trim();
+    }
+    return getFormattedUserId();
   } catch (_) {
-    return 'milyas1071@gmail.com';
+    return getFormattedUserId();
   }
 }
 

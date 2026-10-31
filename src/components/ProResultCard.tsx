@@ -8,7 +8,6 @@ import {
   Compass,
   Layers,
   Sparkles,
-  ArrowRight,
   Zap,
   CheckCircle2,
   AlertCircle,
@@ -26,14 +25,6 @@ export const ProResultCard: React.FC<ProResultCardProps> = ({
   selectedInstrument,
   tradingStyle,
 }) => {
-console.log('[PRO CARD RESISTANCE DEBUG]', {
-    multiTimeframeSupport: analysis.multiTimeframeSupport,
-    resistance15M: analysis.multiTimeframeSupport?.resistance15M,
-    resistance1H: analysis.multiTimeframeSupport?.resistance1H,
-    resistance4H: analysis.multiTimeframeSupport?.resistance4H,
-    combinedMajorResistance:
-      analysis.multiTimeframeSupport?.combinedMajorResistance,
-  });
   // Normalize signal to: BUY, SELL, or WAIT
   const rawSignal = String(analysis.verdict?.signal || '').toUpperCase().trim();
   let signalType: 'BUY' | 'SELL' | 'WAIT' = 'BUY';
@@ -81,19 +72,6 @@ console.log('[PRO CARD RESISTANCE DEBUG]', {
       ? `$${num.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`
       : `$${num.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 6 })}`;
   };
-  const mtfSupport = analysis.multiTimeframeSupport;
-
-const support1 = mtfSupport?.support1;
-const resistance1 = mtfSupport?.resistance1;
-
-const support2 = mtfSupport?.support2;
-const resistance2 = mtfSupport?.resistance2;
-
-const support3 = mtfSupport?.support3;
-const resistance3 = mtfSupport?.resistance3;
-
-const combinedMajorSupport = mtfSupport?.combinedMajorSupport;
-const combinedMajorResistance = mtfSupport?.combinedMajorResistance;
 
   // Determine Entry Zone display
   const getEntryDisplay = (): string => {
@@ -130,14 +108,30 @@ const combinedMajorResistance = mtfSupport?.combinedMajorResistance;
 
   const entryDisplay = getEntryDisplay();
   const slDisplay = formatPrice(analysis.stopLoss?.price);
-  const tp1Display = formatPrice(analysis.takeProfit1?.price);
-  const tp2Display = formatPrice(analysis.takeProfit2?.price);
+  const tp1Display = analysis.takeProfit1?.status === 'UNAVAILABLE' || analysis.takeProfit1?.price === undefined || analysis.takeProfit1?.price === null
+    ? 'Unconfirmed'
+    : formatPrice(analysis.takeProfit1?.price);
+  const tp2Display = analysis.takeProfit2?.status === 'UNAVAILABLE' || analysis.takeProfit2?.price === undefined || analysis.takeProfit2?.price === null
+    ? 'Unconfirmed'
+    : formatPrice(analysis.takeProfit2?.price);
 
-  // Timeframe Insights derivation
+  // Timeframe Insights derivation dynamically from analysis multiTimeframeAnalysis or compound timeframe
   const mtf = analysis.multiTimeframeAnalysis;
-  const tf1Name = mtf?.chart1?.timeframe || support1?.timeframe || 'Unknown';
-const tf2Name = mtf?.chart2?.timeframe || support2?.timeframe || 'Unknown';
-const tf3Name = mtf?.chart3?.timeframe || support3?.timeframe || 'Unknown';
+  const splitTimeframes = typeof analysis.timeframe === 'string'
+    ? analysis.timeframe.split(/[•·,-]/).map((t) => t.trim()).filter(Boolean)
+    : [];
+
+  const tf1Name = mtf?.chart1?.timeframe || splitTimeframes[0] || 'Chart 1';
+  const tf2Name = mtf?.chart2?.timeframe || splitTimeframes[1] || 'Chart 2';
+  const tf3Name = mtf?.chart3?.timeframe || splitTimeframes[2] || 'Chart 3';
+
+  const c1S1 = formatPrice(mtf?.chart1?.support1?.price);
+  const c1R1 = formatPrice(mtf?.chart1?.resistance1?.price);
+  const c2S1 = formatPrice(mtf?.chart2?.support1?.price);
+  const c2R1 = formatPrice(mtf?.chart2?.resistance1?.price);
+  const c3S1 = formatPrice(mtf?.chart3?.support1?.price);
+  const c3R1 = formatPrice(mtf?.chart3?.resistance1?.price);
+
   const directionInsight =
     mtf?.chart1?.observations ||
     mtf?.chart1?.trend ||
@@ -162,23 +156,24 @@ const tf3Name = mtf?.chart3?.timeframe || support3?.timeframe || 'Unknown';
       Array.isArray(analysis.tradePlanExecution.stepByStep) &&
       analysis.tradePlanExecution.stepByStep.length > 0
     ) {
-      return analysis.tradePlanExecution.stepByStep.slice(0, 3);
+      return analysis.tradePlanExecution.stepByStep;
     }
 
     if (signalType === 'WAIT') {
       return [
-        `Monitor price action near key reaction zone for structural breakout or rejection.`,
-        `Confirm volume and momentum shift before committing capital.`,
-        `Preserve capital until clear invalidation level is established.`,
+        `1. Stand Aside: Opposing market structure or key level proximity restricts viable profit target.`,
+        `2. Breakout Trigger: Monitor for confirmed candle close beyond key reaction zone before entering.`,
+        `3. Retracement Trigger: Alternatively, wait for a deeper pullback toward structural support/resistance.`,
+        `4. Discipline: Preserve capital until a setup offering favorable Risk/Reward presents itself.`,
       ];
     }
 
-    const dirWord = signalType === 'BUY' ? 'long' : 'short';
     const actionWord = signalType === 'BUY' ? 'Long' : 'Short';
     return [
-      `Execute ${actionWord} order within Entry Zone (${entryDisplay}) upon lower timeframe confirmation.`,
-      `Set hard Stop Loss at ${slDisplay}. Invalidate idea immediately if candle closes beyond this level.`,
-      `Scale out 50% profits at TP1 (${tp1Display}), move Stop Loss to Breakeven, and ride remainder to TP2 (${tp2Display}).`,
+      `1. Execution Trigger: Confirm ${actionWord} order within Entry Zone (${entryDisplay}) upon lower timeframe confirmation.`,
+      `2. Invalidation Anchor: Set strict Stop Loss at ${slDisplay}. Invalidate idea immediately if breached.`,
+      `3. Primary Target: Take primary profit at TP1 (${tp1Display}) with favorable R:R (${analysis.riskRewardRatio || '1:1.5+'}).`,
+      `4. Runner Target: Trail runner position to TP2 (${tp2Display}) toward extended structural liquidity.`,
     ];
   };
 
@@ -189,34 +184,31 @@ const tf3Name = mtf?.chart3?.timeframe || support3?.timeframe || 'Unknown';
     BUY: {
       label: 'BUY',
       emoji: '🟢',
-      accentText: 'text-[#00F0A0]',
+      accentText: 'text-[#16A36A]',
       badgeBg:
-        'bg-[#00F0A0]/15 text-[#00F0A0] border-[#00F0A0]/40 shadow-[0_0_20px_rgba(0,240,160,0.25)] ring-1 ring-[#00F0A0]/30',
-      dotColor: 'bg-[#00F0A0]',
-      containerBorder: 'border-emerald-500/30 hover:border-emerald-500/50',
-      topGradient: 'from-[#00F0A0]/10 via-transparent to-transparent',
+        'bg-[#16A36A]/10 text-[#16A36A] border-[#16A36A]/30 shadow-xs',
+      dotColor: 'bg-[#16A36A]',
+      containerBorder: 'border-[#16A36A]/40 hover:border-[#16A36A]',
       Icon: TrendingUp,
     },
     SELL: {
       label: 'SELL',
       emoji: '🔴',
-      accentText: 'text-[#FF3B69]',
+      accentText: 'text-[#DC4655]',
       badgeBg:
-        'bg-[#FF3B69]/15 text-[#FF3B69] border-[#FF3B69]/40 shadow-[0_0_20px_rgba(255,59,105,0.25)] ring-1 ring-[#FF3B69]/30',
-      dotColor: 'bg-[#FF3B69]',
-      containerBorder: 'border-rose-500/30 hover:border-rose-500/50',
-      topGradient: 'from-[#FF3B69]/10 via-transparent to-transparent',
+        'bg-[#DC4655]/10 text-[#DC4655] border-[#DC4655]/30 shadow-xs',
+      dotColor: 'bg-[#DC4655]',
+      containerBorder: 'border-[#DC4655]/40 hover:border-[#DC4655]',
       Icon: TrendingDown,
     },
     WAIT: {
       label: 'WAIT',
       emoji: '⚪',
-      accentText: 'text-slate-200',
+      accentText: 'text-[#D99718]',
       badgeBg:
-        'bg-slate-800/80 text-slate-200 border-slate-600 shadow-[0_0_15px_rgba(148,163,184,0.15)] ring-1 ring-slate-500/30',
-      dotColor: 'bg-slate-300',
-      containerBorder: 'border-slate-700 hover:border-slate-600',
-      topGradient: 'from-slate-700/10 via-transparent to-transparent',
+        'bg-[#D99718]/10 text-[#D99718] border-[#D99718]/30 shadow-xs',
+      dotColor: 'bg-[#D99718]',
+      containerBorder: 'border-[#D8DFEA] hover:border-[#245BDB]',
       Icon: Clock,
     },
   }[signalType];
@@ -226,32 +218,27 @@ const tf3Name = mtf?.chart3?.timeframe || support3?.timeframe || 'Unknown';
   return (
     <div
       id="pro-result-card"
-      className={`bg-[#0A0E18] border ${signalConfig.containerBorder} rounded-2xl p-4 sm:p-5 shadow-2xl relative overflow-hidden transition-all duration-200`}
+      className={`bg-white border ${signalConfig.containerBorder} rounded-xl p-4 sm:p-5 shadow-card relative overflow-hidden transition-all duration-200`}
     >
-      {/* Subtle top ambient neon glow */}
-      <div
-        className={`absolute top-0 inset-x-0 h-28 bg-gradient-to-b ${signalConfig.topGradient} pointer-events-none`}
-      />
-
       {/* Header: FALCON PRO • 3-CHART FUSION & Instrument + Style */}
-      <div className="relative z-10 flex items-center justify-between gap-3 pb-3.5 border-b border-slate-800/80 flex-wrap">
+      <div className="relative z-10 flex items-center justify-between gap-3 pb-3.5 border-b border-[#D8DFEA] flex-wrap">
         <div className="flex items-center gap-2.5 min-w-0">
-          <div className="p-1.5 rounded-lg bg-slate-900 border border-slate-800 text-cyan-400 shrink-0">
+          <div className="p-1.5 rounded-lg bg-[#E8F0FF] border border-[#D8DFEA] text-[#245BDB] shrink-0">
             <Layers className="w-4 h-4" />
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <span className="text-xs font-mono font-extrabold text-cyan-400 uppercase tracking-wider">
+              <span className="text-xs font-mono font-extrabold text-[#245BDB] uppercase tracking-wider">
                 FALCON PRO • 3-CHART FUSION
               </span>
             </div>
             <div className="flex items-center gap-2 mt-0.5 flex-wrap">
-              <span className="text-sm font-mono font-bold text-white tracking-wide">
+              <span className="text-sm font-mono font-bold text-[#182338] tracking-wide">
                 {instrumentDisplay}
               </span>
-              <span className="text-slate-500">•</span>
-              <span className="text-xs font-mono text-cyan-300 flex items-center gap-1">
-                <Compass className="w-3 h-3 text-cyan-400" />
+              <span className="text-[#D8DFEA]">•</span>
+              <span className="text-xs font-mono text-[#64748B] flex items-center gap-1">
+                <Compass className="w-3 h-3 text-[#245BDB]" />
                 {styleDisplay}
               </span>
             </div>
@@ -259,17 +246,17 @@ const tf3Name = mtf?.chart3?.timeframe || support3?.timeframe || 'Unknown';
         </div>
 
         {/* Live Status Pill */}
-        <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-slate-900/90 border border-slate-700/80 text-[11px] font-mono text-slate-300 shrink-0">
-          <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-          <span className="font-semibold text-white">SCAN COMPLETE</span>
+        <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-[#F2F4F8] border border-[#D8DFEA] text-[11px] font-mono text-[#182338] shrink-0">
+          <span className="w-2 h-2 rounded-full bg-[#16A36A]" />
+          <span className="font-semibold text-[#182338]">SCAN COMPLETE</span>
         </div>
       </div>
 
       {/* Signal & Confidence Bar */}
-      <div className="relative z-10 pt-4 pb-3 flex items-center justify-between gap-3 flex-wrap bg-slate-950/60 border border-slate-800/90 rounded-xl px-4 py-3 my-3.5">
+      <div className="relative z-10 pt-4 pb-3 flex items-center justify-between gap-3 flex-wrap bg-[#F2F4F8] border border-[#D8DFEA] rounded-xl px-4 py-3 my-3.5">
         <div className="flex items-center gap-3">
           <div
-            className={`px-4 py-1.5 rounded-xl font-mono font-black text-base sm:text-lg tracking-wider flex items-center gap-2 border ${signalConfig.badgeBg}`}
+            className={`px-4 py-1.5 rounded-lg font-mono font-bold text-base sm:text-lg tracking-wider flex items-center gap-2 border ${signalConfig.badgeBg}`}
           >
             <span className="text-lg leading-none">{signalConfig.emoji}</span>
             <SignalIcon className="w-4 h-4 stroke-[2.5]" />
@@ -280,14 +267,14 @@ const tf3Name = mtf?.chart3?.timeframe || support3?.timeframe || 'Unknown';
         {/* Confidence Badge */}
         <div className="flex items-center gap-2.5">
           <div className="text-right">
-            <div className="text-[10px] font-mono uppercase text-slate-400 tracking-wider">
+            <div className="text-[10px] font-mono uppercase text-[#64748B] tracking-wider">
               Confidence Score
             </div>
-            <div className="text-sm sm:text-base font-mono font-extrabold text-cyan-300">
+            <div className="text-sm sm:text-base font-mono font-extrabold text-[#182338]">
               {confidenceScore}%
             </div>
           </div>
-          <div className="w-10 h-10 rounded-xl bg-cyan-950/60 border border-cyan-500/30 flex items-center justify-center text-cyan-400 font-mono font-bold text-xs">
+          <div className="w-9 h-9 rounded-lg bg-white border border-[#D8DFEA] flex items-center justify-center text-[#245BDB] font-mono font-bold text-xs shadow-xs">
             <Sparkles className="w-4 h-4" />
           </div>
         </div>
@@ -296,13 +283,13 @@ const tf3Name = mtf?.chart3?.timeframe || support3?.timeframe || 'Unknown';
       {/* Essential Trade Levels Grid */}
       <div className="relative z-10 grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-3 mb-4">
         {/* Entry Zone */}
-        <div className="bg-slate-950/80 border border-cyan-500/25 rounded-xl p-3 flex flex-col justify-between space-y-1 hover:border-cyan-500/50 transition-colors">
-          <div className="flex items-center gap-1.5 text-[11px] font-mono font-semibold text-slate-400 uppercase tracking-wider">
-            <Target className="w-3.5 h-3.5 text-cyan-400" />
+        <div className="bg-white border border-[#245BDB]/30 rounded-xl p-3 flex flex-col justify-between space-y-1 hover:border-[#245BDB] transition-colors shadow-xs">
+          <div className="flex items-center gap-1.5 text-[11px] font-mono font-semibold text-[#64748B] uppercase tracking-wider">
+            <Target className="w-3.5 h-3.5 text-[#245BDB]" />
             <span>Entry Zone</span>
           </div>
           <div
-            className="text-sm sm:text-base font-mono font-bold text-cyan-300 truncate"
+            className="text-sm sm:text-base font-mono font-bold text-[#245BDB] truncate"
             title={entryDisplay}
           >
             {entryDisplay}
@@ -310,13 +297,13 @@ const tf3Name = mtf?.chart3?.timeframe || support3?.timeframe || 'Unknown';
         </div>
 
         {/* Stop Loss */}
-        <div className="bg-slate-950/80 border border-rose-500/25 rounded-xl p-3 flex flex-col justify-between space-y-1 hover:border-rose-500/50 transition-colors">
-          <div className="flex items-center gap-1.5 text-[11px] font-mono font-semibold text-slate-400 uppercase tracking-wider">
-            <ShieldAlert className="w-3.5 h-3.5 text-rose-400" />
+        <div className="bg-white border border-[#DC4655]/30 rounded-xl p-3 flex flex-col justify-between space-y-1 hover:border-[#DC4655] transition-colors shadow-xs">
+          <div className="flex items-center gap-1.5 text-[11px] font-mono font-semibold text-[#64748B] uppercase tracking-wider">
+            <ShieldAlert className="w-3.5 h-3.5 text-[#DC4655]" />
             <span>Stop Loss (SL)</span>
           </div>
           <div
-            className="text-sm sm:text-base font-mono font-bold text-rose-400 truncate"
+            className="text-sm sm:text-base font-mono font-bold text-[#DC4655] truncate"
             title={slDisplay}
           >
             {slDisplay}
@@ -324,13 +311,17 @@ const tf3Name = mtf?.chart3?.timeframe || support3?.timeframe || 'Unknown';
         </div>
 
         {/* Take Profit 1 */}
-        <div className="bg-slate-950/80 border border-emerald-500/25 rounded-xl p-3 flex flex-col justify-between space-y-1 hover:border-emerald-500/50 transition-colors">
-          <div className="flex items-center gap-1.5 text-[11px] font-mono font-semibold text-slate-400 uppercase tracking-wider">
-            <TrendingUp className="w-3.5 h-3.5 text-emerald-400" />
+        <div className={`bg-white border rounded-xl p-3 flex flex-col justify-between space-y-1 transition-colors shadow-xs ${
+          tp1Display === 'Unconfirmed' ? 'border-[#D8DFEA] hover:border-[#64748B]' : signalType === 'WAIT' ? 'border-[#D99718]/30 hover:border-[#D99718]' : 'border-[#16A36A]/30 hover:border-[#16A36A]'
+        }`}>
+          <div className="flex items-center gap-1.5 text-[11px] font-mono font-semibold text-[#64748B] uppercase tracking-wider">
+            <TrendingUp className={`w-3.5 h-3.5 ${tp1Display === 'Unconfirmed' ? 'text-[#64748B]' : signalType === 'WAIT' ? 'text-[#D99718]' : 'text-[#16A36A]'}`} />
             <span>TP1</span>
           </div>
           <div
-            className="text-sm sm:text-base font-mono font-bold text-emerald-400 truncate"
+            className={`text-sm sm:text-base font-mono font-bold truncate ${
+              tp1Display === 'Unconfirmed' ? 'text-[#64748B]' : signalType === 'WAIT' ? 'text-[#D99718]' : 'text-[#16A36A]'
+            }`}
             title={tp1Display}
           >
             {tp1Display}
@@ -338,209 +329,136 @@ const tf3Name = mtf?.chart3?.timeframe || support3?.timeframe || 'Unknown';
         </div>
 
         {/* Take Profit 2 */}
-        <div className="bg-slate-950/80 border border-emerald-500/25 rounded-xl p-3 flex flex-col justify-between space-y-1 hover:border-emerald-500/50 transition-colors">
-          <div className="flex items-center gap-1.5 text-[11px] font-mono font-semibold text-slate-400 uppercase tracking-wider">
-            <TrendingUp className="w-3.5 h-3.5 text-emerald-300" />
+        <div className={`bg-white border rounded-xl p-3 flex flex-col justify-between space-y-1 transition-colors shadow-xs ${
+          tp2Display === 'Unconfirmed' ? 'border-[#D8DFEA] hover:border-[#64748B]' : signalType === 'WAIT' ? 'border-[#D99718]/30 hover:border-[#D99718]' : 'border-[#16A36A]/30 hover:border-[#16A36A]'
+        }`}>
+          <div className="flex items-center gap-1.5 text-[11px] font-mono font-semibold text-[#64748B] uppercase tracking-wider">
+            <TrendingUp className={`w-3.5 h-3.5 ${tp2Display === 'Unconfirmed' ? 'text-[#64748B]' : signalType === 'WAIT' ? 'text-[#D99718]' : 'text-[#16A36A]'}`} />
             <span>TP2</span>
           </div>
           <div
-            className="text-sm sm:text-base font-mono font-bold text-emerald-300 truncate"
+            className={`text-sm sm:text-base font-mono font-bold truncate ${
+              tp2Display === 'Unconfirmed' ? 'text-[#64748B]' : signalType === 'WAIT' ? 'text-[#D99718]' : 'text-[#16A36A]'
+            }`}
             title={tp2Display}
           >
             {tp2Display}
           </div>
         </div>
       </div>
-      {/* SUPPORT & RESISTANCE LEVELS */}
-      <div className="relative z-10 grid grid-cols-1 md:grid-cols-2 gap-3 mb-3.5">
-        {/* Support Levels */}
-        <div className="bg-slate-950/70 border border-emerald-500/20 rounded-xl p-3.5">
-          <div className="flex items-center gap-2 pb-2 mb-2 border-b border-slate-800/80">
-            <TrendingDown className="w-3.5 h-3.5 text-emerald-400" />
-            <span className="text-xs font-mono font-bold uppercase tracking-wider text-slate-300">
-              Support Levels
-            </span>
-          </div>
-
-          {analysis.supportLevels && analysis.supportLevels.length > 0 ? (
-            <div className="space-y-1.5">
-              {analysis.supportLevels.map((level: any, idx: number) => (
-                <div
-                  key={`support-${idx}`}
-                  className="flex items-center justify-between gap-3 px-2.5 py-2 rounded-lg bg-slate-900/80 border border-slate-800"
-                >
-                  <div className="flex items-center gap-2 min-w-0">
-                    <span className="text-[11px] font-mono font-bold text-emerald-400">
-                      {level.level || `S${idx + 1}`}
-                    </span>
-                    <span className="text-xs font-mono text-slate-300">
-                      {level.strength || 'Strong'}
-                    </span>
-                  </div>
-                  <span className="text-sm font-mono font-bold text-emerald-300 shrink-0">
-                    {formatPrice(level.price)}
-                  </span>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="text-xs font-mono text-slate-500">
-              No visible support levels available.
-            </div>
-          )}
-        </div>
-
-        {/* Resistance Levels */}
-        <div className="bg-slate-950/70 border border-rose-500/20 rounded-xl p-3.5">
-          <div className="flex items-center gap-2 pb-2 mb-2 border-b border-slate-800/80">
-            <TrendingUp className="w-3.5 h-3.5 text-rose-400" />
-            <span className="text-xs font-mono font-bold uppercase tracking-wider text-slate-300">
-              Resistance Levels
-            </span>
-          </div>
-
-          {analysis.resistanceLevels && analysis.resistanceLevels.length > 0 ? (
-            <div className="space-y-1.5">
-              {analysis.resistanceLevels.map((level: any, idx: number) => (
-                <div
-                  key={`resistance-${idx}`}
-                  className="flex items-center justify-between gap-3 px-2.5 py-2 rounded-lg bg-slate-900/80 border border-slate-800"
-                >
-                  <div className="flex items-center gap-2 min-w-0">
-                    <span className="text-[11px] font-mono font-bold text-rose-400">
-                      {level.level || `R${idx + 1}`}
-                    </span>
-                    <span className="text-xs font-mono text-slate-300">
-                      {level.strength || 'Strong'}
-                    </span>
-                  </div>
-                  <span className="text-sm font-mono font-bold text-rose-300 shrink-0">
-                    {formatPrice(level.price)}
-                  </span>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="text-xs font-mono text-slate-500">
-              No visible resistance levels available.
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* MULTI-TIMEFRAME SUPPORT */}
-      {analysis.multiTimeframeSupport && (
-        <div className="relative z-10 bg-slate-950/70 border border-cyan-500/20 rounded-xl p-3.5 mb-3.5">
-          <div className="flex items-center gap-2 pb-2 mb-2 border-b border-slate-800/80">
-            <Layers className="w-3.5 h-3.5 text-cyan-400" />
-            <span className="text-xs font-mono font-bold uppercase tracking-wider text-slate-300">
-              Multi-Timeframe Support
-            </span>
-          </div>
-
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-  {[
-    ['Support 1', analysis.multiTimeframeSupport?.support1],
-    ['Resistance 1', analysis.multiTimeframeSupport?.resistance1],
-    ['Support 2', analysis.multiTimeframeSupport?.support2],
-    ['Resistance 2', analysis.multiTimeframeSupport?.resistance2],
-    ['Support 3', analysis.multiTimeframeSupport?.support3],
-    ['Resistance 3', analysis.multiTimeframeSupport?.resistance3],
-    ['Combined Major Support', analysis.multiTimeframeSupport?.combinedMajorSupport],
-    ['Combined Major Resistance', analysis.multiTimeframeSupport?.combinedMajorResistance],
-  ].map(([label, level]: [string, any]) => (
-    <div
-      key={label}
-      className="rounded-lg bg-slate-900/80 border border-slate-800 p-2.5"
-    >
-      <div className="text-[11px] text-slate-400">
-        {label}
-      </div>
-
-      <div className="mt-1 text-sm font-mono font-bold text-cyan-300">
-        {level?.price !== null && level?.price !== undefined
-          ? String(level.price)
-          : 'Unavailable'}
-      </div>
-
-      <div className="mt-1 text-[10px] text-slate-500">
-        {level?.strength || 'Unavailable'}
-      </div>
-
-      {level?.rationale && (
-        <div className="mt-1 text-[10px] text-slate-500">
-          {level.rationale}
-        </div>
-      )}
-    </div>
-  ))}
-</div>
-        </div>
-      )}
 
       {/* 3-CHART INSIGHTS SECTION */}
-      <div className="relative z-10 bg-slate-950/70 border border-slate-800 rounded-xl p-3.5 mb-3.5 space-y-2.5">
-        <div className="flex items-center gap-2 pb-1.5 border-b border-slate-800/80 text-xs font-mono font-bold uppercase tracking-wider text-slate-300">
-          <Zap className="w-3.5 h-3.5 text-amber-400" />
+      <div className="relative z-10 bg-[#F2F4F8] border border-[#D8DFEA] rounded-xl p-3.5 mb-3.5 space-y-2.5">
+        <div className="flex items-center gap-2 pb-1.5 border-b border-[#D8DFEA] text-xs font-mono font-bold uppercase tracking-wider text-[#182338]">
+          <Zap className="w-3.5 h-3.5 text-[#D99718]" />
           <span>3-CHART INSIGHTS</span>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-2.5 text-xs font-mono">
-          {/* H4 Direction */}
-          <div className="p-2.5 rounded-lg bg-slate-900/80 border border-slate-800 flex flex-col justify-between space-y-1">
-            <div className="flex items-center gap-1.5 text-cyan-400 font-bold text-[11px]">
-              <span className="px-1.5 py-0.5 rounded bg-cyan-950 border border-cyan-500/30 text-cyan-300 font-black">
-                {tf1Name}
-              </span>
-              <ArrowRight className="w-3 h-3 text-cyan-500 shrink-0" />
-              <span className="text-slate-300">Direction</span>
+          {/* Chart 1 Direction & Levels */}
+          <div className="p-2.5 rounded-lg bg-white border border-[#D8DFEA] flex flex-col justify-between space-y-2 shadow-xs">
+            <div className="space-y-1">
+              <div className="flex items-center gap-1.5 text-[#182338] font-bold text-[11px]">
+                <span>Direction</span>
+              </div>
+              <p className="text-[#64748B] text-[11px] leading-relaxed line-clamp-2">
+                {directionInsight}
+              </p>
             </div>
-            <p className="text-slate-300 text-[11px] leading-relaxed line-clamp-2">
-              {directionInsight}
-            </p>
+            {(c1S1 !== '—' || c1R1 !== '—') && (
+              <div className="pt-2 border-t border-[#D8DFEA] flex items-center justify-between text-[11px] font-mono">
+                <div className="flex items-center gap-1" title={mtf?.chart1?.support1?.rationale || 'Chart 1 Support S1'}>
+                  <span className="text-[10px] text-[#64748B] font-semibold">S1:</span>
+                  <span className="font-bold text-[#16A36A]">{c1S1}</span>
+                </div>
+                <div className="flex items-center gap-1" title={mtf?.chart1?.resistance1?.rationale || 'Chart 1 Resistance R1'}>
+                  <span className="text-[10px] text-[#64748B] font-semibold">R1:</span>
+                  <span className="font-bold text-[#DC4655]">{c1R1}</span>
+                </div>
+              </div>
+            )}
           </div>
 
-          {/* H1 Structure / Zone */}
-          <div className="p-2.5 rounded-lg bg-slate-900/80 border border-slate-800 flex flex-col justify-between space-y-1">
-            <div className="flex items-center gap-1.5 text-cyan-400 font-bold text-[11px]">
-              <span className="px-1.5 py-0.5 rounded bg-cyan-950 border border-cyan-500/30 text-cyan-300 font-black">
-                {tf2Name}
-              </span>
-              <ArrowRight className="w-3 h-3 text-cyan-500 shrink-0" />
-              <span className="text-slate-300">Structure / Zone</span>
+          {/* Chart 2 Structure / Zone & Levels */}
+          <div className="p-2.5 rounded-lg bg-white border border-[#D8DFEA] flex flex-col justify-between space-y-2 shadow-xs">
+            <div className="space-y-1">
+              <div className="flex items-center gap-1.5 text-[#182338] font-bold text-[11px]">
+                <span>Structure</span>
+              </div>
+              <p className="text-[#64748B] text-[11px] leading-relaxed line-clamp-2">
+                {structureInsight}
+              </p>
             </div>
-            <p className="text-slate-300 text-[11px] leading-relaxed line-clamp-2">
-              {structureInsight}
-            </p>
+            {(c2S1 !== '—' || c2R1 !== '—') && (
+              <div className="pt-2 border-t border-[#D8DFEA] flex items-center justify-between text-[11px] font-mono">
+                <div className="flex items-center gap-1" title={mtf?.chart2?.support1?.rationale || 'Chart 2 Support S1'}>
+                  <span className="text-[10px] text-[#64748B] font-semibold">S1:</span>
+                  <span className="font-bold text-[#16A36A]">{c2S1}</span>
+                </div>
+                <div className="flex items-center gap-1" title={mtf?.chart2?.resistance1?.rationale || 'Chart 2 Resistance R1'}>
+                  <span className="text-[10px] text-[#64748B] font-semibold">R1:</span>
+                  <span className="font-bold text-[#DC4655]">{c2R1}</span>
+                </div>
+              </div>
+            )}
           </div>
 
-          {/* M15 Execution */}
-          <div className="p-2.5 rounded-lg bg-slate-900/80 border border-slate-800 flex flex-col justify-between space-y-1">
-            <div className="flex items-center gap-1.5 text-cyan-400 font-bold text-[11px]">
-              <span className="px-1.5 py-0.5 rounded bg-cyan-950 border border-cyan-500/30 text-cyan-300 font-black">
-                {tf3Name}
-              </span>
-              <ArrowRight className="w-3 h-3 text-cyan-500 shrink-0" />
-              <span className="text-slate-300">Execution</span>
+          {/* Chart 3 Execution & Levels */}
+          <div className="p-2.5 rounded-lg bg-white border border-[#D8DFEA] flex flex-col justify-between space-y-2 shadow-xs">
+            <div className="space-y-1">
+              <div className="flex items-center gap-1.5 text-[#182338] font-bold text-[11px]">
+                <span>Execution</span>
+              </div>
+              <p className="text-[#64748B] text-[11px] leading-relaxed line-clamp-2">
+                {executionInsight}
+              </p>
             </div>
-            <p className="text-slate-300 text-[11px] leading-relaxed line-clamp-2">
-              {executionInsight}
-            </p>
+            {(c3S1 !== '—' || c3R1 !== '—') && (
+              <div className="pt-2 border-t border-[#D8DFEA] flex items-center justify-between text-[11px] font-mono">
+                <div className="flex items-center gap-1" title={mtf?.chart3?.support1?.rationale || 'Chart 3 Support S1'}>
+                  <span className="text-[10px] text-[#64748B] font-semibold">S1:</span>
+                  <span className="font-bold text-[#16A36A]">{c3S1}</span>
+                </div>
+                <div className="flex items-center gap-1" title={mtf?.chart3?.resistance1?.rationale || 'Chart 3 Resistance R1'}>
+                  <span className="text-[10px] text-[#64748B] font-semibold">R1:</span>
+                  <span className="font-bold text-[#DC4655]">{c3R1}</span>
+                </div>
+              </div>
+            )}
           </div>
         </div>
+
+        {/* Combined Major Confluence Levels if available */}
+        {(mtf?.combinedMajorSupport?.price || mtf?.combinedMajorResistance?.price) && (
+          <div className="pt-2 border-t border-[#D8DFEA] flex flex-wrap items-center justify-between gap-2 text-[11px] font-mono">
+            <span className="text-[#64748B] text-[10px]">COMBINED S/R CONFLUENCE:</span>
+            <div className="flex items-center gap-3">
+              {mtf?.combinedMajorSupport?.price && (
+                <span className="text-[#16A36A] text-[11px]">
+                  Major Support (Demand): <strong>{formatPrice(mtf.combinedMajorSupport.price)}</strong>
+                </span>
+              )}
+              {mtf?.combinedMajorResistance?.price && (
+                <span className="text-[#DC4655] text-[11px]">
+                  Major Resistance (Supply): <strong>{formatPrice(mtf.combinedMajorResistance.price)}</strong>
+                </span>
+              )}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* SHORT TRADE PLAN */}
-      <div className="relative z-10 bg-slate-950/70 border border-slate-800 rounded-xl p-3.5 space-y-2">
-        <div className="flex items-center gap-2 text-xs font-mono font-bold uppercase tracking-wider text-slate-300">
-          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+      <div className="relative z-10 bg-[#F2F4F8] border border-[#D8DFEA] rounded-xl p-3.5 space-y-2">
+        <div className="flex items-center gap-2 text-xs font-mono font-bold uppercase tracking-wider text-[#182338]">
+          <CheckCircle2 className="w-3.5 h-3.5 text-[#16A36A]" />
           <span>TRADE PLAN</span>
         </div>
 
         <div className="space-y-1.5">
           {tradePlanSteps.map((step, idx) => (
-            <div key={idx} className="flex items-start gap-2 text-xs font-mono text-slate-300 leading-relaxed">
-              <span className="w-4 h-4 rounded-full bg-slate-800 text-cyan-400 flex items-center justify-center text-[10px] font-bold shrink-0 mt-0.5">
+            <div key={idx} className="flex items-start gap-2 text-xs font-mono text-[#182338] leading-relaxed">
+              <span className="w-4 h-4 rounded-full bg-white border border-[#D8DFEA] text-[#245BDB] flex items-center justify-center text-[10px] font-bold shrink-0 mt-0.5 shadow-xs">
                 {idx + 1}
               </span>
               <span>{step}</span>
@@ -549,10 +467,10 @@ const tf3Name = mtf?.chart3?.timeframe || support3?.timeframe || 'Unknown';
         </div>
 
         {analysis.tradePlanExecution?.invalidationCriteria && (
-          <div className="pt-2 border-t border-slate-800/80 flex items-center gap-2 text-[11px] font-mono text-rose-300/90">
-            <AlertCircle className="w-3.5 h-3.5 text-rose-400 shrink-0" />
+          <div className="pt-2 border-t border-[#D8DFEA] flex items-center gap-2 text-[11px] font-mono text-[#DC4655]">
+            <AlertCircle className="w-3.5 h-3.5 text-[#DC4655] shrink-0" />
             <span className="truncate">
-              <span className="font-bold text-rose-400">Invalidation:</span> {analysis.tradePlanExecution.invalidationCriteria}
+              <span className="font-bold text-[#DC4655]">Invalidation:</span> {analysis.tradePlanExecution.invalidationCriteria}
             </span>
           </div>
         )}

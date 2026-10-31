@@ -22,5 +22,14 @@
     },
     "allowImportingTsExtensions": true,
     "noEmit": true
-  }
+  },
+  "exclude": [
+    "backups",
+    "node_modules",
+    "dist",
+    "test_timeframe_tp_audit.ts",
+    "test_safepay_audit.ts"
+  ]
 }
+
+
